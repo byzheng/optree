@@ -72,17 +72,29 @@
 <h2 id="features">Features<a class="anchor" aria-label="anchor" href="#features"></a>
 </h2>
 <ul>
-<li>Hierarchical, nested options (<code>a.b.c</code>)<br>
+<li>
+<strong>Hierarchical, nested options</strong> (<code>a.b.c</code>)<br>
 </li>
-<li>Runtime mutable configuration<br>
+<li>
+<strong>Dot-separated path notation</strong> for both <code><a href="https://rdrr.io/r/base/get.html" class="external-link">get()</a></code> and <code>set()</code> operations<br>
 </li>
-<li>Merge-aware updates (update only part of a nested group)<br>
+<li>
+<strong>Runtime mutable configuration</strong><br>
 </li>
-<li>Group and field validation for consistency<br>
+<li>
+<strong>Merge-aware updates</strong> (update only part of a nested group)<br>
 </li>
-<li>Reset all options to defaults with one call<br>
+<li>
+<strong>Transactional updates</strong> (rollback on validation failure)<br>
 </li>
-<li>Minimal dependencies, lightweight and easy to use</li>
+<li>
+<strong>Group and field validation</strong> for consistency<br>
+</li>
+<li>
+<strong>Reset all options</strong> to defaults with one call<br>
+</li>
+<li>
+<strong>Minimal dependencies</strong>, lightweight and easy to use</li>
 </ul>
 <hr>
 </div>
@@ -140,11 +152,11 @@
 <li>Update options</li>
 </ol>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Update leaf-level</span></span>
+<code class="sourceCode R"><span><span class="co"># Method 1: Use dot-separated paths (NEW!)</span></span>
 <span><span class="va">canola</span><span class="op">$</span><span class="fu">set</span><span class="op">(</span><span class="st">"phenology.thermaltime.x"</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">5</span>,<span class="fl">25</span>,<span class="fl">40</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">canola</span><span class="op">$</span><span class="fu">set</span><span class="op">(</span><span class="st">"phenology.thermaltime.y"</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>,<span class="fl">20</span>,<span class="fl">0</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
-<span></span>
-<span><span class="co"># Merge-aware update for the group</span></span>
+<span><span class="co"># Method 2: Use nested list (traditional way)</span></span>
 <span><span class="va">canola</span><span class="op">$</span><span class="fu">set</span><span class="op">(</span>phenology <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
 <span>  thermaltime <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
 <span>    x <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">10</span>,<span class="fl">20</span>,<span class="fl">30</span><span class="op">)</span>,</span>
@@ -152,6 +164,11 @@
 <span>  <span class="op">)</span></span>
 <span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
+<span><span class="co"># Mix both styles in one call</span></span>
+<span><span class="va">canola</span><span class="op">$</span><span class="fu">set</span><span class="op">(</span></span>
+<span>  <span class="st">"phenology.thermaltime.x"</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">15</span>,<span class="fl">25</span>,<span class="fl">35</span><span class="op">)</span>,</span>
+<span>  frost_threshold <span class="op">=</span> <span class="op">-</span><span class="fl">2</span></span>
+<span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Update top-level option</span></span>
 <span><span class="va">canola</span><span class="op">$</span><span class="fu">set</span><span class="op">(</span>frost_threshold <span class="op">=</span> <span class="op">-</span><span class="fl">2</span><span class="op">)</span></span></code></pre></div>
@@ -163,10 +180,24 @@
 <span>  y <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>,<span class="fl">1</span>,<span class="fl">2</span><span class="op">)</span></span>
 <span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co"># Error: x and y must have same length</span></span></code></pre></div>
-<ol start="4" style="list-style-type: decimal">
-<li>Reset options</li>
+<ol start="5" style="list-style-type: decimal">
+<li>Transactional safety</li>
 </ol>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Set valid values</span></span>
+<span><span class="va">canola</span><span class="op">$</span><span class="fu">set</span><span class="op">(</span><span class="st">"phenology.thermaltime.x"</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">5</span>,<span class="fl">25</span>,<span class="fl">40</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">canola</span><span class="op">$</span><span class="fu">set</span><span class="op">(</span><span class="st">"phenology.thermaltime.y"</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>,<span class="fl">20</span>,<span class="fl">0</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Try an invalid update - will fail and rollback</span></span>
+<span><span class="va">canola</span><span class="op">$</span><span class="fu">set</span><span class="op">(</span><span class="st">"phenology.thermaltime.x"</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>,<span class="fl">2</span><span class="op">)</span><span class="op">)</span>  <span class="co"># length mismatch</span></span>
+<span><span class="co"># Error: x and y must have same length</span></span>
+<span></span>
+<span><span class="co"># Options remain unchanged after failed validation</span></span>
+<span><span class="va">canola</span><span class="op">$</span><span class="fu">get</span><span class="op">(</span><span class="st">"phenology.thermaltime.x"</span><span class="op">)</span>  <span class="co"># Still c(5,25,40)</span></span></code></pre></div>
+<ol start="6" style="list-style-type: decimal">
+<li>Reset options</li>
+</ol>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">canola</span><span class="op">$</span><span class="fu">reset</span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="co"># Returns all defaults</span></span>
 <span><span class="va">canola</span><span class="op">$</span><span class="fu">get</span><span class="op">(</span><span class="op">)</span></span></code></pre></div>

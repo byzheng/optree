@@ -81,10 +81,11 @@ dot-separated string for nested options, e.g., <code>"thermaltime.x"</code>.
 If <code>name</code> is NULL, returns all current options.</p></dd>
 
 <dt><code>set(...)</code> </dt>
-<dd><p>Update one or more options by name. Accepts
-named arguments where names can be dot-separated for nested options,
-e.g., <code>thermaltime = list(x = ..., y = ...)</code>. Validators are
-automatically applied if provided.</p></dd>
+<dd><p>Update one or more options by name. Accepts named arguments
+in two formats: (1) dot-separated paths like <code>"phenology.thermaltime.y" = ...</code>
+or (2) nested lists like <code>thermaltime = list(x = ..., y = ...)</code>.
+Both styles can be mixed in a single call. Validators are automatically
+applied if provided.</p></dd>
 
 <dt><code>reset()</code></dt>
 <dd><p>Reset all options to their default values.</p></dd>
@@ -99,6 +100,13 @@ always have the same length. Using validators ensures that these relationships
 are maintained whenever options are updated.</p>
 <p>The manager supports <strong>merge-aware updates</strong>, meaning that if a nested list
 is provided, only the specified elements are updated while others are preserved.</p>
+<p><strong>Dot-separated path notation</strong>: The <code>set()</code> function now accepts path strings
+like <code>"phenology.thermaltime.y" = c(0, 25, 0)</code>, which are automatically
+converted to nested lists internally. This provides a more concise syntax for
+updating deeply nested options without reconstructing the entire hierarchy.</p>
+<p><strong>Transactional updates</strong>: If validation fails during a <code>set()</code> call, all
+changes are rolled back and the options remain in their previous state. This ensures
+that the options manager is always in a consistent state.</p>
     </div>
 
     <div id="ref-examples">
@@ -122,10 +130,22 @@ is provided, only the specified elements are updated while others are preserved.
 <span class="r-in"><span>    <span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># Access and update</span></span></span>
+<span class="r-in"><span><span class="co"># Access and update (both methods work)</span></span></span>
 <span class="r-in"><span><span class="va">canola</span><span class="op">$</span><span class="fu">get</span><span class="op">(</span><span class="st">"thermaltime.x"</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1]  2 30 35</span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># Method 1: Use dot-separated path strings (concise!)</span></span></span>
+<span class="r-in"><span><span class="va">canola</span><span class="op">$</span><span class="fu">set</span><span class="op">(</span><span class="st">"thermaltime.y"</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">25</span>, <span class="fl">0</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">canola</span><span class="op">$</span><span class="fu">set</span><span class="op">(</span><span class="st">"thermaltime.x"</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">5</span>, <span class="fl">25</span>, <span class="fl">40</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># Method 2: Use nested list (traditional way)</span></span></span>
 <span class="r-in"><span><span class="va">canola</span><span class="op">$</span><span class="fu">set</span><span class="op">(</span>thermaltime <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>x <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">5</span>, <span class="fl">25</span>, <span class="fl">40</span><span class="op">)</span>, y <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">20</span>, <span class="fl">0</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># Method 3: Mix both styles in one call</span></span></span>
+<span class="r-in"><span><span class="va">canola</span><span class="op">$</span><span class="fu">set</span><span class="op">(</span></span></span>
+<span class="r-in"><span>  <span class="st">"thermaltime.x"</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">10</span>, <span class="fl">30</span>, <span class="fl">45</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>  frost_threshold <span class="op">=</span> <span class="op">-</span><span class="fl">2</span></span></span>
+<span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Reset to defaults</span></span></span>
 <span class="r-in"><span><span class="va">canola</span><span class="op">$</span><span class="fu">reset</span><span class="op">(</span><span class="op">)</span></span></span>

@@ -29,6 +29,13 @@ Currently on [Github](https://github.com/byzheng/optree) only. Install with:
 remotes::install_github('byzheng/optree')
 ```
 
+---
+
+## Documentation
+
+For detailed documentation and reference, visit: https://optree.bangyou.me
+
+---
 
 ## Getting Started
 

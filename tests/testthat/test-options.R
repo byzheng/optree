@@ -153,3 +153,66 @@ test_that("partial nested updates respect predefined keys", {
 
 
 
+
+
+# Check the invalid cases of parameter defined
+
+test_that("create_options_manager rejects empty top-level names", {
+    expect_error(
+        create_options_manager(list()),
+        "`defaults` must be a named list"
+    )
+})
+
+test_that("create_options_manager rejects empty nested names", {
+    expect_error(
+        create_options_manager(list(
+            phenology = list(123)
+        )),
+        "All lists must be named at path 'phenology'"
+    )
+})
+
+test_that("create_options_manager rejects names containing dots", {
+    expect_error(
+        create_options_manager(list(
+            "thermaltime.x" = 123
+        )),
+        "Option names must not contain '.'"
+    )
+
+    expect_error(
+        create_options_manager(list(
+            phenology = list("thermaltime.x" = 123)
+        )),
+        "Option names must not contain '.'"
+    )
+})
+
+test_that("create_options_manager rejects validators that are not functions", {
+    expect_error(
+        create_options_manager(
+            defaults = list(a = 1),
+            validators = list(a = "not_a_function")
+        ),
+        "Validators must be functions"
+    )
+})
+
+test_that("create_options_manager rejects validators with non-existent paths", {
+    expect_error(
+        create_options_manager(
+            defaults = list(a = 1),
+            validators = list("b" = function(x) x)
+        ),
+        "Validator path 'b' does not exist"
+    )
+
+    expect_error(
+        create_options_manager(
+            defaults = list(a = list(x = 1)),
+            validators = list("a.y" = function(x) x)
+        ),
+        "Validator path 'a.y' does not exist"
+    )
+})

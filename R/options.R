@@ -65,18 +65,16 @@ create_options_manager <- function(defaults, validators = list()) {
         stop("`defaults` must be a named list", call. = FALSE)
     }
 
-    if (any(names(defaults) == "")) {
-        stop("All default option names must be non-empty", call. = FALSE)
-    }
-    if (any(grepl("\\.", names(defaults)))) {
-        stop("Option names must not contain '.'", call. = FALSE)
-    }
+    check_names(defaults)
+
+    check_no_dots(defaults)
 
     if (!is.list(validators)) {
         stop("`validators` must be a named list of functions", call. = FALSE)
     }
 
     if (length(validators)) {
+        validate_paths(defaults, names(validators))
         if (is.null(names(validators)) || any(names(validators) == "")) {
             stop("All validators must be named", call. = FALSE)
         }
@@ -234,5 +232,83 @@ run_validators <- function(options, validators) {
         keys <- strsplit(path, "\\.")[[1]]
         value <- Reduce(`[[`, keys, options)
         validators[[path]](value)
+    }
+}
+
+
+validate_paths <- function(defaults, paths) {
+    for (p in paths) {
+        keys <- strsplit(p, "\\.")[[1]]
+        cur <- defaults
+        for (k in keys) {
+            if (!is.list(cur) || !k %in% names(cur)) {
+                stop(
+                    sprintf("Validator path '%s' does not exist in defaults", p),
+                    call. = FALSE
+                )
+            }
+            cur <- cur[[k]]
+        }
+    }
+}
+
+
+check_no_dots <- function(x, path = NULL) {
+    if (!is.list(x)) {
+        return()
+    }
+
+    nms <- names(x)
+    if (is.null(nms) || any(nms == "")) {
+        stop(sprintf("All names must be non-empty at path '%s'", paste(path, collapse = ".")), call. = FALSE)
+    }
+
+    if (any(grepl("\\.", nms))) {
+        stop(
+            sprintf(
+                "Option names must not contain '.' at path '%s': %s",
+                paste(path, collapse = "."),
+                paste(nms[grepl("\\.", nms)], collapse = ", ")
+            ),
+            call. = FALSE
+        )
+    }
+
+    # Recurse into nested lists
+    for (i in seq_along(x)) {
+        check_no_dots(x[[i]], c(path, nms[i]))
+    }
+}
+
+check_names <- function(x, path = NULL) {
+    if (!is.list(x)) {
+        return()
+    }
+
+    nms <- names(x)
+    if (is.null(nms)) {
+        stop(sprintf("All lists must be named at path '%s'", paste(path, collapse = ".")), call. = FALSE)
+    }
+
+    # check empty
+    if (any(nms == "")) {
+        stop(sprintf("All names must be non-empty at path '%s'", paste(path, collapse = ".")), call. = FALSE)
+    }
+
+    # check for dots
+    if (any(grepl("\\.", nms))) {
+        stop(
+            sprintf(
+                "Option names must not contain '.' at path '%s': %s",
+                paste(path, collapse = "."),
+                paste(nms[grepl("\\.", nms)], collapse = ", ")
+            ),
+            call. = FALSE
+        )
+    }
+
+    # recurse
+    for (i in seq_along(x)) {
+        check_names(x[[i]], c(path, nms[i]))
     }
 }

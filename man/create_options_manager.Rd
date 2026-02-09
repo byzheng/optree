@@ -45,26 +45,26 @@ is provided, only the specified elements are updated while others are preserved.
 \examples{
 # Define a validator for a group
 thermaltime_validator <- function(value) {
-  if (!is.list(value) || !all(c("x","y") \%in\% names(value))) {
-    stop("thermaltime must be a list with both x and y")
-  }
-  if (length(value$x) != length(value$y)) stop("thermaltime x and y must have same length")
+    if (!is.list(value) || !all(c("x", "y") \%in\% names(value))) {
+        stop("thermaltime must be a list with both x and y")
+    }
+    if (length(value$x) != length(value$y)) stop("thermaltime x and y must have same length")
 }
 
 # Create a manager
 canola <- create_options_manager(
-  defaults = list(
-    thermaltime = list(x = c(2,30,35), y = c(0,28,0)),
-    frost_threshold = 0
-  ),
-  validators = list(
-    "thermaltime" = thermaltime_validator
-  )
+    defaults = list(
+        thermaltime = list(x = c(2, 30, 35), y = c(0, 28, 0)),
+        frost_threshold = 0
+    ),
+    validators = list(
+        "thermaltime" = thermaltime_validator
+    )
 )
 
 # Access and update
 canola$get("thermaltime.x")
-canola$set(thermaltime = list(x = c(5,25,40), y = c(0,20,0)))
+canola$set(thermaltime = list(x = c(5, 25, 40), y = c(0, 20, 0)))
 
 # Reset to defaults
 canola$reset()

@@ -2,9 +2,18 @@
 <url><loc>/404.html</loc></url>
 <url><loc>/CODE_OF_CONDUCT.html</loc></url>
 <url><loc>/LICENSE-text.html</loc></url>
+<url><loc>/articles/index.html</loc></url>
+<url><loc>/articles/validators.html</loc></url>
 <url><loc>/authors.html</loc></url>
 <url><loc>/index.html</loc></url>
 <url><loc>/reference/create_options_manager.html</loc></url>
 <url><loc>/reference/index.html</loc></url>
+<url><loc>/reference/v_character_scalar.html</loc></url>
+<url><loc>/reference/v_enum.html</loc></url>
+<url><loc>/reference/v_logical_scalar.html</loc></url>
+<url><loc>/reference/v_numeric_range.html</loc></url>
+<url><loc>/reference/v_numeric_scalar.html</loc></url>
+<url><loc>/reference/v_numeric_vector.html</loc></url>
+<url><loc>/reference/v_xypair.html</loc></url>
 </urlset>
 

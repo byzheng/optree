@@ -44,29 +44,24 @@ For detailed documentation and reference, visit: https://optree.bangyou.me
 ```r
 library(optree)
 
-
-# Define a validator for thermaltime group
-thermaltime_validator <- function(value) {
-  if (!is.list(value) || !all(c("x","y") %in% names(value))) {
-    stop("thermaltime must be a list with both x and y")
-  }
-  if (length(value$x) != length(value$y)) stop("x and y must have same length")
-}
-
-
-# Create the CANOLA options manager
+# Create the CANOLA options manager with built-in validators
 canola <- create_options_manager(
   defaults = list(
     phenology = list(
       thermaltime = list(
-        x = c(2,30,35),
-        y = c(0,28,0)
+        x = c(2, 30, 35),
+        y = c(0, 28, 0)
       )
     ),
-    frost_threshold = 0
+    frost_threshold = 0,
+    model_name = "canola_v1",
+    backend = "cpu"
   ),
   validators = list(
-    "phenology.thermaltime" = thermaltime_validator
+    "phenology.thermaltime" = v_xypair(min_len = 3),
+    "frost_threshold" = v_numeric_range(min = -5, max = 5),
+    "model_name" = v_character_scalar(),
+    "backend" = v_enum(c("cpu", "gpu"))
   )
 )
 ```
@@ -110,12 +105,24 @@ canola$set(frost_threshold = -2)
 Validator example:
 
 ```r
-# Will fail because x and y lengths mismatch
+# v_enum validator - value must be one of the allowed choices
+canola$set(backend = "quantum")
+# Error: must be one of: cpu, gpu
+
+# v_numeric_range validator - frost_threshold must be between -5 and 5
+canola$set(frost_threshold = 10)
+# Error: must be between -5 and 5
+
+# v_xypair validator - x and y must have same length and meet min_len
 canola$set(phenology = list(thermaltime = list(
-  x = c(1,2),
-  y = c(0,1,2)
+  x = c(1, 2),
+  y = c(0, 1, 2)
 )))
-# Error: x and y must have same length
+# Error: 'x' and 'y' must have the same length
+
+# v_character_scalar validator - model_name must be non-empty string
+canola$set(model_name = "")
+# Error: must not be empty
 ```
 
 5. Transactional safety
@@ -151,6 +158,20 @@ canola$get()
 | Runtime mutable | ✅ | ✅ | ✅ |
 | Group validation | ✅ | Custom only | ❌ |
 | Arbitrary depth | ✅ | Limited | ❌ |
+
+## Built-in Validators
+
+optree provides a collection of ready-to-use validators for common validation patterns:
+
+- **`v_numeric_scalar()`** – Validates single numeric values
+- **`v_numeric_range(min, max)`** – Validates numeric values within a range
+- **`v_numeric_vector(min_len, finite)`** – Validates numeric vectors with length/finiteness constraints
+- **`v_logical_scalar()`** – Validates single logical values
+- **`v_character_scalar(non_empty)`** – Validates single character values, optionally non-empty
+- **`v_enum(choices)`** – Validates that value is one of predefined choices
+- **`v_xypair(min_len)`** – Validates paired x/y lists (useful for time series, phenology data, etc.)
+
+For more details and examples, see the [Validators Vignette](vignettes/validators.Rmd).
 
 ## Contributing
 

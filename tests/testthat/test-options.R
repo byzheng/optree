@@ -1,11 +1,4 @@
 # Test options manager functionality
-thermaltime_validator <- function(value) {
-    if (!is.list(value) || !all(c("x", "y") %in% names(value))) {
-        stop("thermaltime must be a list with both x and y")
-    }
-    if (length(value$x) != length(value$y)) stop("thermaltime x and y must have same length")
-}
-
 canola <- create_options_manager(
     defaults = list(
         thermaltime = list(
@@ -15,7 +8,8 @@ canola <- create_options_manager(
         frost_threshold = 0
     ),
     validators = list(
-        "thermaltime" = thermaltime_validator
+        "thermaltime" = v_xypair(),
+        "frost_threshold" = v_logical_scalar()
     )
 )
 
@@ -86,13 +80,6 @@ test_that("cannot set unknown nested options", {
 
 
 # Test more complex nested structure
-thermaltime_validator <- function(value) {
-    if (!is.list(value) || !all(c("x", "y") %in% names(value))) {
-        stop("thermaltime must be a list with both x and y")
-    }
-    if (length(value$x) != length(value$y)) stop("thermaltime x and y must have same length")
-}
-
 # Create a CANOLA options manager
 canola <- create_options_manager(
     defaults = list(
@@ -105,7 +92,7 @@ canola <- create_options_manager(
         frost_threshold = 0
     ),
     validators = list(
-        "phenology.thermaltime" = thermaltime_validator
+        "phenology.thermaltime" = v_xypair()
     )
 )
 

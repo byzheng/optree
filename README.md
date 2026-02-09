@@ -1,3 +1,5 @@
+[![R-CMD-check.yaml](https://github.com/byzheng/optree/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/byzheng/optree/actions/workflows/R-CMD-check.yaml)
+
 # optree
 
 **A lightweight R package for hierarchical runtime configuration**

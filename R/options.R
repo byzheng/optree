@@ -35,32 +35,64 @@
 #' @examples
 #' # Define a validator for a group
 #' thermaltime_validator <- function(value) {
-#'   if (!is.list(value) || !all(c("x","y") %in% names(value))) {
-#'     stop("thermaltime must be a list with both x and y")
-#'   }
-#'   if (length(value$x) != length(value$y)) stop("thermaltime x and y must have same length")
+#'     if (!is.list(value) || !all(c("x", "y") %in% names(value))) {
+#'         stop("thermaltime must be a list with both x and y")
+#'     }
+#'     if (length(value$x) != length(value$y)) stop("thermaltime x and y must have same length")
 #' }
 #'
 #' # Create a manager
 #' canola <- create_options_manager(
-#'   defaults = list(
-#'     thermaltime = list(x = c(2,30,35), y = c(0,28,0)),
-#'     frost_threshold = 0
-#'   ),
-#'   validators = list(
-#'     "thermaltime" = thermaltime_validator
-#'   )
+#'     defaults = list(
+#'         thermaltime = list(x = c(2, 30, 35), y = c(0, 28, 0)),
+#'         frost_threshold = 0
+#'     ),
+#'     validators = list(
+#'         "thermaltime" = thermaltime_validator
+#'     )
 #' )
 #'
 #' # Access and update
 #' canola$get("thermaltime.x")
-#' canola$set(thermaltime = list(x = c(5,25,40), y = c(0,20,0)))
+#' canola$set(thermaltime = list(x = c(5, 25, 40), y = c(0, 20, 0)))
 #'
 #' # Reset to defaults
 #' canola$reset()
 #'
 #' @export
 create_options_manager <- function(defaults, validators = list()) {
+    if (!is.list(defaults) || is.null(names(defaults))) {
+        stop("`defaults` must be a named list", call. = FALSE)
+    }
+
+    if (any(names(defaults) == "")) {
+        stop("All default option names must be non-empty", call. = FALSE)
+    }
+    if (any(grepl("\\.", names(defaults)))) {
+        stop("Option names must not contain '.'", call. = FALSE)
+    }
+
+    if (!is.list(validators)) {
+        stop("`validators` must be a named list of functions", call. = FALSE)
+    }
+
+    if (length(validators)) {
+        if (is.null(names(validators)) || any(names(validators) == "")) {
+            stop("All validators must be named", call. = FALSE)
+        }
+
+        bad <- !vapply(validators, is.function, logical(1))
+        if (any(bad)) {
+            stop(
+                sprintf(
+                    "Validators must be functions: %s",
+                    paste(names(validators)[bad], collapse = ", ")
+                ),
+                call. = FALSE
+            )
+        }
+    }
+
     state <- new.env(parent = emptyenv())
     state$options <- defaults
 
@@ -74,30 +106,38 @@ create_options_manager <- function(defaults, validators = list()) {
         }
         lst
     }
+    set_nested <- function(lst, keys, value, full_keys = keys, defaults) {
+        key <- keys[1]
 
-    # Helper to set nested value with optional validation
-    set_nested <- function(lst, keys, value, full_keys = keys) {
+        # check top-level key exists
+        if (!key %in% names(defaults)) {
+            stop(sprintf("Option '%s' is not defined", paste(full_keys, collapse = ".")), call. = FALSE)
+        }
+
         if (length(keys) == 1) {
-            # Run validator if exists
-            validator_key <- paste(full_keys, collapse = ".")
-            if (!is.null(validators[[validator_key]])) {
-                validators[[validator_key]](value)
-            }
-
-            # Merge if both are lists
-            current <- lst[[keys]]
+            # Leaf or group
+            current <- lst[[key]]
             if (is.list(current) && is.list(value)) {
+                # Check for unknown keys at this level
+                unknown_keys <- setdiff(names(value), names(defaults[[key]]))
+                if (length(unknown_keys) > 0) {
+                    stop(sprintf(
+                        "Unknown sub-option(s) for '%s': %s",
+                        paste(full_keys, collapse = "."),
+                        paste(unknown_keys, collapse = ", ")
+                    ), call. = FALSE)
+                }
+                # Merge only known keys
                 for (n in names(value)) current[[n]] <- value[[n]]
-                lst[[keys]] <- current
+                lst[[key]] <- current
             } else {
-                lst[[keys]] <- value
+                lst[[key]] <- value
             }
             return(lst)
         }
 
-        key <- keys[1]
-        if (is.null(lst[[key]])) lst[[key]] <- list()
-        lst[[key]] <- set_nested(lst[[key]], keys[-1], value, full_keys)
+        # Recurse deeper
+        lst[[key]] <- set_nested(lst[[key]], keys[-1], value, full_keys, defaults[[key]])
         lst
     }
 
@@ -107,16 +147,44 @@ create_options_manager <- function(defaults, validators = list()) {
             if (is.null(name)) {
                 return(state$options)
             }
+
             keys <- strsplit(name, "\\.")[[1]]
-            get_nested(state$options, keys)
+            cur <- state$options
+
+            for (k in keys) {
+                if (!is.list(cur) || !k %in% names(cur)) {
+                    stop(
+                        sprintf("Option '%s' is not defined", name),
+                        call. = FALSE
+                    )
+                }
+                cur <- cur[[k]]
+            }
+
+            cur
         },
         set = function(...) {
             args <- list(...)
-            if (is.null(names(args)) || any(names(args) == "")) stop("All arguments must be named")
-            for (key in names(args)) {
-                keys <- strsplit(key, "\\.")[[1]]
-                state$options <- set_nested(state$options, keys, args[[key]])
+            if (is.null(names(args)) || any(names(args) == "")) {
+                stop("All arguments must be named")
             }
+
+            for (nm in names(args)) {
+                if (!nm %in% names(defaults)) {
+                    stop(sprintf("Option '%s' is not defined", nm), call. = FALSE)
+                }
+
+                state$options[[nm]] <- validate_and_merge(
+                    current  = state$options[[nm]],
+                    update   = args[[nm]],
+                    defaults = defaults[[nm]],
+                    path     = nm
+                )
+            }
+
+            # 🔥 run validators AFTER merge
+            run_validators(state$options, validators)
+
             invisible(state$options)
         },
         reset = function() {
@@ -124,4 +192,47 @@ create_options_manager <- function(defaults, validators = list()) {
             invisible(state$options)
         }
     )
+}
+
+
+validate_and_merge <- function(current, update, defaults, path) {
+    if (!is.list(update)) {
+        return(update)
+    }
+
+    if (!is.list(defaults)) {
+        stop(sprintf(
+            "Option '%s' is not a group and cannot accept sub-options",
+            paste(path, collapse = ".")
+        ), call. = FALSE)
+    }
+
+    unknown <- setdiff(names(update), names(defaults))
+    if (length(unknown) > 0) {
+        stop(sprintf(
+            "Unknown sub-option(s) for '%s': %s",
+            paste(path, collapse = "."),
+            paste(unknown, collapse = ", ")
+        ), call. = FALSE)
+    }
+
+    for (nm in names(update)) {
+        current[[nm]] <- validate_and_merge(
+            current = current[[nm]],
+            update = update[[nm]],
+            defaults = defaults[[nm]],
+            path = c(path, nm)
+        )
+    }
+
+    current
+}
+
+
+run_validators <- function(options, validators) {
+    for (path in names(validators)) {
+        keys <- strsplit(path, "\\.")[[1]]
+        value <- Reduce(`[[`, keys, options)
+        validators[[path]](value)
+    }
 }

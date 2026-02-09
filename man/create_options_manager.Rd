@@ -47,6 +47,10 @@ is provided, only the specified elements are updated while others are preserved.
 like \code{"phenology.thermaltime.y" = c(0, 25, 0)}, which are automatically
 converted to nested lists internally. This provides a more concise syntax for
 updating deeply nested options without reconstructing the entire hierarchy.
+
+\strong{Transactional updates}: If validation fails during a \code{set()} call, all
+changes are rolled back and the options remain in their previous state. This ensures
+that the options manager is always in a consistent state.
 }
 \examples{
 # Define a validator for a group

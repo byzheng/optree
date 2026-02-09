@@ -12,6 +12,7 @@ optree provides a flexible, mutable, hierarchical options manager for R. It allo
 - **Dot-separated path notation** for both `get()` and `set()` operations  
 - **Runtime mutable configuration**  
 - **Merge-aware updates** (update only part of a nested group)  
+- **Transactional updates** (rollback on validation failure)  
 - **Group and field validation** for consistency  
 - **Reset all options** to defaults with one call  
 - **Minimal dependencies**, lightweight and easy to use  
@@ -108,7 +109,22 @@ canola$set(phenology = list(thermaltime = list(
 # Error: x and y must have same length
 ```
 
-4. Reset options
+5. Transactional safety
+
+```r
+# Set valid values
+canola$set("phenology.thermaltime.x" = c(5,25,40))
+canola$set("phenology.thermaltime.y" = c(0,20,0))
+
+# Try an invalid update - will fail and rollback
+canola$set("phenology.thermaltime.x" = c(1,2))  # length mismatch
+# Error: x and y must have same length
+
+# Options remain unchanged after failed validation
+canola$get("phenology.thermaltime.x")  # Still c(5,25,40)
+```
+
+6. Reset options
 
 ```r
 canola$reset()

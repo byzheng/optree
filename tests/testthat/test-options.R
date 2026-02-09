@@ -188,12 +188,13 @@ test_that("dot-separated paths enforce validation", {
         canola$set("phenology.thermaltime.x" = c(1, 2)),  # length 2
         "thermaltime x and y must have same length"
     )
-
+    expect_equal(canola$get("phenology.thermaltime.x"), c(2, 30, 35)) # should be unchanged
     # Now y has different length, should fail validation
     expect_error(
         canola$set("phenology.thermaltime.y" = c(0, 28)),  # length 2
         "thermaltime x and y must have same length"
     )
+    expect_equal(canola$get("phenology.thermaltime.y"), c(0, 28, 0)) # should be unchanged
 })
 
 test_that("dot-separated paths reject unknown options", {
@@ -211,6 +212,37 @@ test_that("dot-separated paths reject unknown options", {
         canola$set("nonexistent.path" = 1),
         "Option 'nonexistent' is not defined"
     )
+})
+
+test_that("set rolls back on validation failure", {
+    canola$reset()
+    
+    # Set valid values first
+    canola$set("phenology.thermaltime.x" = c(5, 15, 25))
+    canola$set("phenology.thermaltime.y" = c(0, 10, 0))
+    
+    original_x <- canola$get("phenology.thermaltime.x")
+    original_y <- canola$get("phenology.thermaltime.y")
+    
+    # Try to set x with mismatched length - should fail and rollback
+    expect_error(
+        canola$set("phenology.thermaltime.x" = c(1, 2)),
+        "thermaltime x and y must have same length"
+    )
+    
+    # Verify state is unchanged after failed validation
+    expect_equal(canola$get("phenology.thermaltime.x"), original_x)
+    expect_equal(canola$get("phenology.thermaltime.y"), original_y)
+    
+    # Try another invalid update with traditional nested list syntax
+    expect_error(
+        canola$set(phenology = list(thermaltime = list(x = c(1), y = c(1, 2, 3)))),
+        "thermaltime x and y must have same length"
+    )
+    
+    # State should still be unchanged
+    expect_equal(canola$get("phenology.thermaltime.x"), original_x)
+    expect_equal(canola$get("phenology.thermaltime.y"), original_y)
 })
 
 

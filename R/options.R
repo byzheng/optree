@@ -38,6 +38,10 @@
 #' converted to nested lists internally. This provides a more concise syntax for 
 #' updating deeply nested options without reconstructing the entire hierarchy.
 #'
+#' **Transactional updates**: If validation fails during a \code{set()} call, all
+#' changes are rolled back and the options remain in their previous state. This ensures
+#' that the options manager is always in a consistent state.
+#'
 #' @examples
 #' # Define a validator for a group
 #' thermaltime_validator <- function(value) {
@@ -185,6 +189,9 @@ create_options_manager <- function(defaults, validators = list()) {
                 stop("All arguments must be named")
             }
 
+            # Save old state for rollback if validation fails
+            old_options <- state$options
+
             # Convert dot-separated paths to nested lists
             processed_args <- list()
             for (nm in names(args)) {
@@ -222,8 +229,14 @@ create_options_manager <- function(defaults, validators = list()) {
                 )
             }
 
-            # 🔥 run validators AFTER merge
-            run_validators(state$options, validators)
+            # 🔥 run validators AFTER merge, rollback on error
+            tryCatch({
+                run_validators(state$options, validators)
+            }, error = function(e) {
+                # Rollback to old state
+                state$options <- old_options
+                stop(e$message, call. = FALSE)
+            })
 
             invisible(state$options)
         },

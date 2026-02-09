@@ -65,13 +65,165 @@
 <div class="section level1">
 <div class="page-header"><h1 id="optree">optree<a class="anchor" aria-label="anchor" href="#optree"></a>
 </h1></div>
-<p>This is a lightweight R package for hierarchical runtime configuration. It provides a simple and flexible way to manage nested, multi-level configuration in R, with features such as runtime mutability, type checking, and easy reset to defaults.</p>
+<p><strong>A lightweight R package for hierarchical runtime configuration</strong></p>
+<p>optree provides a flexible, mutable, hierarchical options manager for R. It allows packages and projects to define <strong>nested configuration options</strong>, enforce <strong>group validation rules</strong>, and easily <strong>reset to defaults</strong>. Ideal for complex, interdependent settings like crop models, phenology simulations, or multi-module projects.</p>
+<hr>
+<div class="section level2">
+<h2 id="features">Features<a class="anchor" aria-label="anchor" href="#features"></a>
+</h2>
+<ul>
+<li>Hierarchical, nested options (<code>a.b.c</code>)<br>
+</li>
+<li>Runtime mutable configuration<br>
+</li>
+<li>Merge-aware updates (update only part of a nested group)<br>
+</li>
+<li>Group and field validation for consistency<br>
+</li>
+<li>Reset all options to defaults with one call<br>
+</li>
+<li>Minimal dependencies, lightweight and easy to use</li>
+</ul>
+<hr>
+</div>
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
 </h2>
 <p>Currently on <a href="https://github.com/byzheng/optree" class="external-link">Github</a> only. Install with:</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">remotes</span><span class="fu">::</span><span class="fu">install_github</span><span class="op">(</span><span class="st">'byzheng/optree'</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level2">
+<h2 id="getting-started">Getting Started<a class="anchor" aria-label="anchor" href="#getting-started"></a>
+</h2>
+<ol style="list-style-type: decimal">
+<li>Create an options manager</li>
+</ol>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://optree.bangyou.me/" class="external-link">optree</a></span><span class="op">)</span></span>
+<span></span>
+<span></span>
+<span><span class="co"># Define a validator for thermaltime group</span></span>
+<span><span class="va">thermaltime_validator</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">value</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">is.list</a></span><span class="op">(</span><span class="va">value</span><span class="op">)</span> <span class="op">||</span> <span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/all.html" class="external-link">all</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"x"</span>,<span class="st">"y"</span><span class="op">)</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">value</span><span class="op">)</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="kw"><a href="https://rdrr.io/r/base/stop.html" class="external-link">stop</a></span><span class="op">(</span><span class="st">"thermaltime must be a list with both x and y"</span><span class="op">)</span></span>
+<span>  <span class="op">}</span></span>
+<span>  <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">value</span><span class="op">$</span><span class="va">x</span><span class="op">)</span> <span class="op">!=</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">value</span><span class="op">$</span><span class="va">y</span><span class="op">)</span><span class="op">)</span> <span class="kw"><a href="https://rdrr.io/r/base/stop.html" class="external-link">stop</a></span><span class="op">(</span><span class="st">"x and y must have same length"</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span></span>
+<span></span>
+<span><span class="co"># Create the CANOLA options manager</span></span>
+<span><span class="va">canola</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/create_options_manager.html">create_options_manager</a></span><span class="op">(</span></span>
+<span>  defaults <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>    phenology <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>      thermaltime <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>        x <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">2</span>,<span class="fl">30</span>,<span class="fl">35</span><span class="op">)</span>,</span>
+<span>        y <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>,<span class="fl">28</span>,<span class="fl">0</span><span class="op">)</span></span>
+<span>      <span class="op">)</span></span>
+<span>    <span class="op">)</span>,</span>
+<span>    frost_threshold <span class="op">=</span> <span class="fl">0</span></span>
+<span>  <span class="op">)</span>,</span>
+<span>  validators <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>    <span class="st">"phenology.thermaltime"</span> <span class="op">=</span> <span class="va">thermaltime_validator</span></span>
+<span>  <span class="op">)</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<ol start="2" style="list-style-type: decimal">
+<li>Access options</li>
+</ol>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Get a single leaf</span></span>
+<span><span class="va">canola</span><span class="op">$</span><span class="fu">get</span><span class="op">(</span><span class="st">"phenology.thermaltime.x"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Get the entire group</span></span>
+<span><span class="va">canola</span><span class="op">$</span><span class="fu">get</span><span class="op">(</span><span class="st">"phenology.thermaltime"</span><span class="op">)</span></span></code></pre></div>
+<ol start="3" style="list-style-type: decimal">
+<li>Update options</li>
+</ol>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Update leaf-level</span></span>
+<span><span class="va">canola</span><span class="op">$</span><span class="fu">set</span><span class="op">(</span><span class="st">"phenology.thermaltime.x"</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">5</span>,<span class="fl">25</span>,<span class="fl">40</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span></span>
+<span><span class="co"># Merge-aware update for the group</span></span>
+<span><span class="va">canola</span><span class="op">$</span><span class="fu">set</span><span class="op">(</span>phenology <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>  thermaltime <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>    x <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">10</span>,<span class="fl">20</span>,<span class="fl">30</span><span class="op">)</span>,</span>
+<span>    y <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>,<span class="fl">10</span>,<span class="fl">0</span><span class="op">)</span></span>
+<span>  <span class="op">)</span></span>
+<span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span></span>
+<span><span class="co"># Update top-level option</span></span>
+<span><span class="va">canola</span><span class="op">$</span><span class="fu">set</span><span class="op">(</span>frost_threshold <span class="op">=</span> <span class="op">-</span><span class="fl">2</span><span class="op">)</span></span></code></pre></div>
+<p>Validator example:</p>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Will fail because x and y lengths mismatch</span></span>
+<span><span class="va">canola</span><span class="op">$</span><span class="fu">set</span><span class="op">(</span>phenology <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>thermaltime <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>  x <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>,<span class="fl">2</span><span class="op">)</span>,</span>
+<span>  y <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>,<span class="fl">1</span>,<span class="fl">2</span><span class="op">)</span></span>
+<span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co"># Error: x and y must have same length</span></span></code></pre></div>
+<ol start="4" style="list-style-type: decimal">
+<li>Reset options</li>
+</ol>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">canola</span><span class="op">$</span><span class="fu">reset</span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="co"># Returns all defaults</span></span>
+<span><span class="va">canola</span><span class="op">$</span><span class="fu">get</span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level2">
+<h2 id="advantages-over-existing-approaches">Advantages over existing approaches<a class="anchor" aria-label="anchor" href="#advantages-over-existing-approaches"></a>
+</h2>
+<table class="table">
+<thead><tr class="header">
+<th>Feature</th>
+<th>optree</th>
+<th>settings::options_manager</th>
+<th>base R options()</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td>Hierarchical options</td>
+<td>✅</td>
+<td>Limited</td>
+<td>❌</td>
+</tr>
+<tr class="even">
+<td>Merge-aware updates</td>
+<td>✅</td>
+<td>❌</td>
+<td>❌</td>
+</tr>
+<tr class="odd">
+<td>Runtime mutable</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr class="even">
+<td>Group validation</td>
+<td>✅</td>
+<td>Custom only</td>
+<td>❌</td>
+</tr>
+<tr class="odd">
+<td>Arbitrary depth</td>
+<td>✅</td>
+<td>Limited</td>
+<td>❌</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section level2">
+<h2 id="contributing">Contributing<a class="anchor" aria-label="anchor" href="#contributing"></a>
+</h2>
+<p>Contributions are welcome! Please submit issues or pull requests via GitHub.</p>
+</div>
+<div class="section level2">
+<h2 id="license">License<a class="anchor" aria-label="anchor" href="#license"></a>
+</h2>
+<p>MIT License – see LICENSE file for details.</p>
 </div>
 </div>
   </div>

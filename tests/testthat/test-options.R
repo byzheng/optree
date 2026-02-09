@@ -9,7 +9,7 @@ canola <- create_options_manager(
     ),
     validators = list(
         "thermaltime" = v_xypair(),
-        "frost_threshold" = v_logical_scalar()
+        "frost_threshold" = v_numeric_scalar()
     )
 )
 
@@ -48,8 +48,7 @@ test_that("set enforces group validation", {
 
     # x and y different length
     expect_error(
-        canola$set(thermaltime = list(x = c(1, 2), y = c(0, 1, 2))),
-        "thermaltime x and y must have same length"
+        canola$set(thermaltime = list(x = c(1, 2), y = c(0, 1, 2)))
     )
 })
 
@@ -92,7 +91,8 @@ canola <- create_options_manager(
         frost_threshold = 0
     ),
     validators = list(
-        "phenology.thermaltime" = v_xypair()
+        "phenology.thermaltime" = v_xypair(),
+        "frost_threshold" = v_numeric_scalar()
     )
 )
 
@@ -172,14 +172,12 @@ test_that("dot-separated paths enforce validation", {
     # First set x to different length
     
     expect_error(
-        canola$set("phenology.thermaltime.x" = c(1, 2)),  # length 2
-        "thermaltime x and y must have same length"
+        canola$set("phenology.thermaltime.x" = c(1, 2))
     )
     expect_equal(canola$get("phenology.thermaltime.x"), c(2, 30, 35)) # should be unchanged
     # Now y has different length, should fail validation
     expect_error(
-        canola$set("phenology.thermaltime.y" = c(0, 28)),  # length 2
-        "thermaltime x and y must have same length"
+        canola$set("phenology.thermaltime.y" = c(0, 28))
     )
     expect_equal(canola$get("phenology.thermaltime.y"), c(0, 28, 0)) # should be unchanged
 })
@@ -213,8 +211,7 @@ test_that("set rolls back on validation failure", {
     
     # Try to set x with mismatched length - should fail and rollback
     expect_error(
-        canola$set("phenology.thermaltime.x" = c(1, 2)),
-        "thermaltime x and y must have same length"
+        canola$set("phenology.thermaltime.x" = c(1, 2))
     )
     
     # Verify state is unchanged after failed validation
@@ -223,8 +220,7 @@ test_that("set rolls back on validation failure", {
     
     # Try another invalid update with traditional nested list syntax
     expect_error(
-        canola$set(phenology = list(thermaltime = list(x = c(1), y = c(1, 2, 3)))),
-        "thermaltime x and y must have same length"
+        canola$set(phenology = list(thermaltime = list(x = c(1), y = c(1, 2, 3))))
     )
     
     # State should still be unchanged

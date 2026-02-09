@@ -8,12 +8,13 @@ optree provides a flexible, mutable, hierarchical options manager for R. It allo
 
 ## Features
 
-- Hierarchical, nested options (`a.b.c`)  
-- Runtime mutable configuration  
-- Merge-aware updates (update only part of a nested group)  
-- Group and field validation for consistency  
-- Reset all options to defaults with one call  
-- Minimal dependencies, lightweight and easy to use  
+- **Hierarchical, nested options** (`a.b.c`)  
+- **Dot-separated path notation** for both `get()` and `set()` operations  
+- **Runtime mutable configuration**  
+- **Merge-aware updates** (update only part of a nested group)  
+- **Group and field validation** for consistency  
+- **Reset all options** to defaults with one call  
+- **Minimal dependencies**, lightweight and easy to use  
 
 ---
 
@@ -74,11 +75,11 @@ canola$get("phenology.thermaltime")
 3. Update options
 
 ```r
-# Update leaf-level
+# Method 1: Use dot-separated paths (NEW!)
 canola$set("phenology.thermaltime.x" = c(5,25,40))
+canola$set("phenology.thermaltime.y" = c(0,20,0))
 
-
-# Merge-aware update for the group
+# Method 2: Use nested list (traditional way)
 canola$set(phenology = list(
   thermaltime = list(
     x = c(10,20,30),
@@ -86,6 +87,11 @@ canola$set(phenology = list(
   )
 ))
 
+# Mix both styles in one call
+canola$set(
+  "phenology.thermaltime.x" = c(15,25,35),
+  frost_threshold = -2
+)
 
 # Update top-level option
 canola$set(frost_threshold = -2)

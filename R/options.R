@@ -16,10 +16,11 @@
 #'   \item{\code{get(name = NULL)}}{Retrieve the current value of an option. Use a
 #'         dot-separated string for nested options, e.g., \code{"thermaltime.x"}.
 #'         If \code{name} is NULL, returns all current options.}
-#'   \item{\code{set(...)} }{Update one or more options by name. Accepts
-#'         named arguments where names can be dot-separated for nested options,
-#'         e.g., \code{thermaltime = list(x = ..., y = ...)}. Validators are
-#'         automatically applied if provided.}
+#'   \item{\code{set(...)} }{Update one or more options by name. Accepts named arguments
+#'         in two formats: (1) dot-separated paths like \code{"phenology.thermaltime.y" = ...}
+#'         or (2) nested lists like \code{thermaltime = list(x = ..., y = ...)}. 
+#'         Both styles can be mixed in a single call. Validators are automatically 
+#'         applied if provided.}
 #'   \item{\code{reset()}}{Reset all options to their default values.}
 #' }
 #'
@@ -31,6 +32,11 @@
 #'
 #' The manager supports **merge-aware updates**, meaning that if a nested list
 #' is provided, only the specified elements are updated while others are preserved.
+#'
+#' **Dot-separated path notation**: The \code{set()} function now accepts path strings
+#' like \code{"phenology.thermaltime.y" = c(0, 25, 0)}, which are automatically 
+#' converted to nested lists internally. This provides a more concise syntax for 
+#' updating deeply nested options without reconstructing the entire hierarchy.
 #'
 #' @examples
 #' # Define a validator for a group
@@ -52,9 +58,21 @@
 #'     )
 #' )
 #'
-#' # Access and update
+#' # Access and update (both methods work)
 #' canola$get("thermaltime.x")
+#'
+#' # Method 1: Use dot-separated path strings (concise!)
+#' canola$set("thermaltime.y" = c(0, 25, 0))
+#' canola$set("thermaltime.x" = c(5, 25, 40))
+#'
+#' # Method 2: Use nested list (traditional way)
 #' canola$set(thermaltime = list(x = c(5, 25, 40), y = c(0, 20, 0)))
+#'
+#' # Method 3: Mix both styles in one call
+#' canola$set(
+#'   "thermaltime.x" = c(10, 30, 45),
+#'   frost_threshold = -2
+#' )
 #'
 #' # Reset to defaults
 #' canola$reset()
@@ -167,14 +185,38 @@ create_options_manager <- function(defaults, validators = list()) {
                 stop("All arguments must be named")
             }
 
+            # Convert dot-separated paths to nested lists
+            processed_args <- list()
             for (nm in names(args)) {
+                if (grepl("\\.", nm)) {
+                    # Path with dots: convert to nested structure
+                    keys <- strsplit(nm, "\\.")[[1]]
+                    nested <- path_to_nested_list(keys, args[[nm]])
+                    # Merge into processed_args
+                    processed_args <- merge_into_list(processed_args, nested)
+                } else {
+                    # Top-level key
+                    if (nm %in% names(processed_args)) {
+                        # Merge if key already exists
+                        if (is.list(args[[nm]]) && is.list(processed_args[[nm]])) {
+                            processed_args[[nm]] <- merge_lists(processed_args[[nm]], args[[nm]])
+                        } else {
+                            processed_args[[nm]] <- args[[nm]]
+                        }
+                    } else {
+                        processed_args[[nm]] <- args[[nm]]
+                    }
+                }
+            }
+
+            for (nm in names(processed_args)) {
                 if (!nm %in% names(defaults)) {
                     stop(sprintf("Option '%s' is not defined", nm), call. = FALSE)
                 }
 
                 state$options[[nm]] <- validate_and_merge(
                     current  = state$options[[nm]],
-                    update   = args[[nm]],
+                    update   = processed_args[[nm]],
                     defaults = defaults[[nm]],
                     path     = nm
                 )
@@ -227,7 +269,56 @@ validate_and_merge <- function(current, update, defaults, path) {
 }
 
 
+
+
+# Helper function: convert a path and value into a nested list structure
+# e.g., path_to_nested_list(c("phenology", "thermal_time", "y"), c(0, 25, 0))
+#       => list(phenology = list(thermal_time = list(y = c(0, 25, 0))))
+path_to_nested_list <- function(keys, value) {
+    if (length(keys) == 0) {
+        return(value)
+    }
+    
+    result <- list(value)
+    names(result) <- keys[length(keys)]
+    
+    for (i in (length(keys) - 1):1) {
+        tmp <- list(result)
+        names(tmp) <- keys[i]
+        result <- tmp
+    }
+    
+    result
+}
+
+# Helper function: recursively merge two lists
+merge_lists <- function(x, y) {
+    for (nm in names(y)) {
+        if (nm %in% names(x) && is.list(x[[nm]]) && is.list(y[[nm]])) {
+            x[[nm]] <- merge_lists(x[[nm]], y[[nm]])
+        } else {
+            x[[nm]] <- y[[nm]]
+        }
+    }
+    x
+}
+
+# Helper function: merge a nested list into the main argument list
+merge_into_list <- function(main, nested) {
+    keys <- names(nested)
+    if (length(keys) == 1 && is.list(nested[[1]])) {
+        key <- keys[1]
+        if (key %in% names(main) && is.list(main[[key]]) && is.list(nested[[key]])) {
+            main[[key]] <- merge_lists(main[[key]], nested[[key]])
+        } else {
+            main[[key]] <- nested[[key]]
+        }
+    }
+    main
+}
+
 run_validators <- function(options, validators) {
+
     for (path in names(validators)) {
         keys <- strsplit(path, "\\.")[[1]]
         value <- Reduce(`[[`, keys, options)

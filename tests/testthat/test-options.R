@@ -151,6 +151,68 @@ test_that("partial nested updates respect predefined keys", {
     expect_equal(canola$get("phenology.thermaltime.y"), c(0, 20, 0)) # unchanged
 })
 
+# Test dot-separated path notation in set()
+test_that("set accepts dot-separated paths for nested options", {
+    canola$reset()
+    
+    # Set a deeply nested value using dot notation
+    canola$set("phenology.thermaltime.x" = c(10, 20, 30))
+    expect_equal(canola$get("phenology.thermaltime.x"), c(10, 20, 30))
+    # y should be unchanged
+    expect_equal(canola$get("phenology.thermaltime.y"), c(0, 28, 0))
+    
+    # Set another nested value
+    canola$set("phenology.thermaltime.y" = c(1, 2, 3))
+    expect_equal(canola$get("phenology.thermaltime.y"), c(1, 2, 3))
+})
+
+test_that("set can mix dot-separated paths and nested lists", {
+    canola$reset()
+    
+    # Mix both styles in one call
+    canola$set(
+        "phenology.thermaltime.x" = c(5, 15, 25),
+        frost_threshold = -3
+    )
+    
+    expect_equal(canola$get("phenology.thermaltime.x"), c(5, 15, 25))
+    expect_equal(canola$get("frost_threshold"), -3)
+})
+
+test_that("dot-separated paths enforce validation", {
+    canola$reset()
+    
+    # First set x to different length
+    
+    expect_error(
+        canola$set("phenology.thermaltime.x" = c(1, 2)),  # length 2
+        "thermaltime x and y must have same length"
+    )
+
+    # Now y has different length, should fail validation
+    expect_error(
+        canola$set("phenology.thermaltime.y" = c(0, 28)),  # length 2
+        "thermaltime x and y must have same length"
+    )
+})
+
+test_that("dot-separated paths reject unknown options", {
+    expect_error(
+        canola$set("phenology.thermaltime.z" = 999),
+        "Unknown sub-option\\(s\\) for 'phenology.thermaltime': z"
+    )
+    
+    expect_error(
+        canola$set("phenology.unknown_group.x" = 1),
+        "Unknown sub-option\\(s\\) for 'phenology': unknown_group"
+    )
+    
+    expect_error(
+        canola$set("nonexistent.path" = 1),
+        "Option 'nonexistent' is not defined"
+    )
+})
+
 
 
 

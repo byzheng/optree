@@ -21,10 +21,11 @@ A list with three functions:
 \item{\code{get(name = NULL)}}{Retrieve the current value of an option. Use a
 dot-separated string for nested options, e.g., \code{"thermaltime.x"}.
 If \code{name} is NULL, returns all current options.}
-\item{\code{set(...)} }{Update one or more options by name. Accepts
-named arguments where names can be dot-separated for nested options,
-e.g., \code{thermaltime = list(x = ..., y = ...)}. Validators are
-automatically applied if provided.}
+\item{\code{set(...)} }{Update one or more options by name. Accepts named arguments
+in two formats: (1) dot-separated paths like \code{"phenology.thermaltime.y" = ...}
+or (2) nested lists like \code{thermaltime = list(x = ..., y = ...)}.
+Both styles can be mixed in a single call. Validators are automatically
+applied if provided.}
 \item{\code{reset()}}{Reset all options to their default values.}
 }
 }
@@ -41,6 +42,11 @@ are maintained whenever options are updated.
 
 The manager supports \strong{merge-aware updates}, meaning that if a nested list
 is provided, only the specified elements are updated while others are preserved.
+
+\strong{Dot-separated path notation}: The \code{set()} function now accepts path strings
+like \code{"phenology.thermaltime.y" = c(0, 25, 0)}, which are automatically
+converted to nested lists internally. This provides a more concise syntax for
+updating deeply nested options without reconstructing the entire hierarchy.
 }
 \examples{
 # Define a validator for a group
@@ -62,9 +68,21 @@ canola <- create_options_manager(
     )
 )
 
-# Access and update
+# Access and update (both methods work)
 canola$get("thermaltime.x")
+
+# Method 1: Use dot-separated path strings (concise!)
+canola$set("thermaltime.y" = c(0, 25, 0))
+canola$set("thermaltime.x" = c(5, 25, 40))
+
+# Method 2: Use nested list (traditional way)
 canola$set(thermaltime = list(x = c(5, 25, 40), y = c(0, 20, 0)))
+
+# Method 3: Mix both styles in one call
+canola$set(
+  "thermaltime.x" = c(10, 30, 45),
+  frost_threshold = -2
+)
 
 # Reset to defaults
 canola$reset()

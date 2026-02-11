@@ -1,9 +1,14 @@
 Package: optree
-Title: A Lightweight R Package for Hierarchical Runtime Configuration
+Title: Hierarchical Runtime Configuration Management
 Version: 0.1.0
 Authors@R: 
     person("Bangou", "Zheng", , "zheng.bangyou@gmail.com", role = c("aut", "cre"))
-Description: Manage nested, multi-level configuration in R with runtime mutability, type checking, and easy reset to defaults.
+Description: Provides tools for managing nested, multi-level configuration systems with
+    runtime mutability, type validation, and default value management. Supports creating
+    hierarchical options managers with customizable validators for scalar and vector types
+    (numeric, character, logical), enumerated values, bounded ranges, and complex structures
+    like XY pairs. Options can be dynamically modified at runtime while maintaining type
+    safety through validator functions, and easily reset to their default values when needed.
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)

@@ -23,8 +23,6 @@ validator <- v_numeric_scalar()
 validator(42)
 
 # Invalid inputs (would raise errors)
-\dontrun{
-validator(c(1, 2, 3)) # vector, not scalar
-validator("text") # not numeric
-}
+try(validator(c(1, 2, 3))) # vector, not scalar
+try(validator("text")) # not numeric
 }

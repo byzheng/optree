@@ -37,10 +37,8 @@ validator <- v_xypair(min_len = 2)
 validator(list(x = c(1, 2, 3), y = c(10, 20, 30)))
 
 # Invalid inputs (would raise errors)
-\dontrun{
-validator(list(x = c(1), y = c(10)))
-validator(list(x = c(1, 2), y = c(10, 20, 30))) # different lengths
-validator(list(x = c(1, NA), y = c(10, 20))) # contains NA
-validator(list(x = c(1, 2))) # missing y
-}
+try(validator(list(x = c(1), y = c(10))))
+try(validator(list(x = c(1, 2), y = c(10, 20, 30)))) # different lengths
+try(validator(list(x = c(1, NA), y = c(10, 20)))) # contains NA
+try(validator(list(x = c(1, 2)))) # missing y
 }

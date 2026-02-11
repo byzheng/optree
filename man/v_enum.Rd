@@ -30,9 +30,7 @@ validator("red")
 validator("blue")
 
 # Invalid inputs (would raise errors)
-\dontrun{
-  validator("yellow")  # not in choices
-  validator(c("red", "blue"))  # vector, not scalar
-  validator(1)  # numeric, not character
-}
+try(validator("yellow"))  # not in choices
+try(validator(c("red", "blue")))  # vector, not scalar
+try(validator(1))  # numeric, not character
 }

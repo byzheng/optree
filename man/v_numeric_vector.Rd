@@ -35,10 +35,8 @@ validator(c(1, 2, 3))
 validator(c(0.5, 1.5, 2.5, 3.5))
 
 # Invalid inputs (would raise errors)
-\dontrun{
-  validator(c(1, 2))  # too short
-  validator(c(1, NA, 3))  # contains NA
-  validator(c(1, Inf, 3))  # contains non-finite value
-  validator("not numeric")  # not numeric
-}
+try(validator(c(1, 2)))  # too short
+try(validator(c(1, NA, 3)))  # contains NA
+try(validator(c(1, Inf, 3)))  # contains non-finite value
+try(validator("not numeric"))  # not numeric
 }

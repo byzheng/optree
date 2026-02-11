@@ -26,8 +26,6 @@ validator <- v_character_scalar()
 validator("hello")
 
 # Invalid inputs (would raise errors)
-\dontrun{
-  validator(c("hello", "world"))  # vector, not scalar
-  validator(123)  # numeric, not character
-}
+try(validator(c("hello", "world")))  # vector, not scalar
+try(validator(123))  # numeric, not character
 }

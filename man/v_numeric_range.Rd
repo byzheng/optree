@@ -34,9 +34,7 @@ validator(0)
 validator(1)
 
 # Invalid inputs (would raise errors)
-\dontrun{
-validator(-0.1) # below minimum
-validator(1.5) # above maximum
-validator(c(0.5, 0.7)) # vector, not scalar
-}
+try(validator(-0.1)) # below minimum
+try(validator(1.5)) # above maximum
+try(validator(c(0.5, 0.7))) # vector, not scalar
 }

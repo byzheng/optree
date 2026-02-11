@@ -17,10 +17,8 @@
 #' validator(42)
 #'
 #' # Invalid inputs (would raise errors)
-#' \dontrun{
-#' validator(c(1, 2, 3)) # vector, not scalar
-#' validator("text") # not numeric
-#' }
+#' try(validator(c(1, 2, 3))) # vector, not scalar
+#' try(validator("text")) # not numeric
 v_numeric_scalar <- function() {
     function(x) {
         if (!is.numeric(x) || length(x) != 1) {
@@ -48,10 +46,8 @@ v_numeric_scalar <- function() {
 #' validator(TRUE)
 #'
 #' # Invalid inputs (would raise errors)
-#' \dontrun{
-#' validator(c(TRUE, FALSE)) # vector, not scalar
-#' validator(1) # numeric, not logical
-#' }
+#' try(validator(c(TRUE, FALSE))) # vector, not scalar
+#' try(validator(1)) # numeric, not logical
 v_logical_scalar <- function() {
     function(x) {
         if (!is.logical(x) || length(x) != 1) {
@@ -86,11 +82,9 @@ v_logical_scalar <- function() {
 #' validator(1)
 #'
 #' # Invalid inputs (would raise errors)
-#' \dontrun{
-#' validator(-0.1) # below minimum
-#' validator(1.5) # above maximum
-#' validator(c(0.5, 0.7)) # vector, not scalar
-#' }
+#' try(validator(-0.1)) # below minimum
+#' try(validator(1.5)) # above maximum
+#' try(validator(c(0.5, 0.7))) # vector, not scalar
 v_numeric_range <- function(min = -Inf, max = Inf) {
     function(value) {
         if (!is.numeric(value) || length(value) != 1) {
@@ -122,10 +116,8 @@ v_numeric_range <- function(min = -Inf, max = Inf) {
 #' validator("hello")
 #'
 #' # Invalid inputs (would raise errors)
-#' \dontrun{
-#'   validator(c("hello", "world"))  # vector, not scalar
-#'   validator(123)  # numeric, not character
-#' }
+#' try(validator(c("hello", "world")))  # vector, not scalar
+#' try(validator(123))  # numeric, not character
 v_character_scalar <- function() {
     function(x) {
         if (!is.character(x) || length(x) != 1L) {
@@ -160,11 +152,9 @@ v_character_scalar <- function() {
 #' validator("blue")
 #'
 #' # Invalid inputs (would raise errors)
-#' \dontrun{
-#'   validator("yellow")  # not in choices
-#'   validator(c("red", "blue"))  # vector, not scalar
-#'   validator(1)  # numeric, not character
-#' }
+#' try(validator("yellow"))  # not in choices
+#' try(validator(c("red", "blue")))  # vector, not scalar
+#' try(validator(1))  # numeric, not character
 v_enum <- function(choices) {
     stopifnot(is.character(choices))
 
@@ -208,12 +198,10 @@ v_enum <- function(choices) {
 #' validator(c(0.5, 1.5, 2.5, 3.5))
 #'
 #' # Invalid inputs (would raise errors)
-#' \dontrun{
-#'   validator(c(1, 2))  # too short
-#'   validator(c(1, NA, 3))  # contains NA
-#'   validator(c(1, Inf, 3))  # contains non-finite value
-#'   validator("not numeric")  # not numeric
-#' }
+#' try(validator(c(1, 2)))  # too short
+#' try(validator(c(1, NA, 3)))  # contains NA
+#' try(validator(c(1, Inf, 3)))  # contains non-finite value
+#' try(validator("not numeric"))  # not numeric
 v_numeric_vector <- function(min_len = 1, finite = TRUE) {
     function(x) {
         if (!is.numeric(x)) {
@@ -261,12 +249,10 @@ v_numeric_vector <- function(min_len = 1, finite = TRUE) {
 #' validator(list(x = c(1, 2, 3), y = c(10, 20, 30)))
 #'
 #' # Invalid inputs (would raise errors)
-#' \dontrun{
-#' validator(list(x = c(1), y = c(10)))
-#' validator(list(x = c(1, 2), y = c(10, 20, 30))) # different lengths
-#' validator(list(x = c(1, NA), y = c(10, 20))) # contains NA
-#' validator(list(x = c(1, 2))) # missing y
-#' }
+#' try(validator(list(x = c(1), y = c(10))))
+#' try(validator(list(x = c(1, 2), y = c(10, 20, 30)))) # different lengths
+#' try(validator(list(x = c(1, NA), y = c(10, 20)))) # contains NA
+#' try(validator(list(x = c(1, 2)))) # missing y
 v_xypair <- function(min_len = 1) {
     function(value) {
         if (!is.list(value)) {

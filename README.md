@@ -29,7 +29,13 @@ optree provides a flexible, mutable, hierarchical options manager for R. It allo
 
 ## Installation
 
-Currently on [Github](https://github.com/byzheng/optree) only. Install with:
+### From CRAN
+
+```r
+install.packages('optree')
+```
+
+### From GitHub (development version)
 
 ```r
 remotes::install_github('byzheng/optree')

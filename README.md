@@ -1,4 +1,10 @@
-[![R-CMD-check.yaml](https://github.com/byzheng/optree/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/byzheng/optree/actions/workflows/R-CMD-check.yaml)
+[![R-CMD-check.yaml](https://github.com/byzheng/optree/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/byzheng/optree/actions/workflows/R-CMD-check.yaml)[![CRAN_Status_Badge](http://www.r-pkg.org/badges/version/optree)](https://cran.r-project.org/package=optree)
+
+[![](http://cranlogs.r-pkg.org/badges/grand-total/optree?color=green)](https://cran.r-project.org/package=optree)
+[![](http://cranlogs.r-pkg.org/badges/last-month/optree?color=green)](https://cran.r-project.org/package=optree)
+[![](http://cranlogs.r-pkg.org/badges/last-week/optree?color=green)](https://cran.r-project.org/package=optree)
+
+
 
 # optree
 

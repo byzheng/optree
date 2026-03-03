@@ -125,7 +125,7 @@ canola$set(backend = "quantum")
 canola$set(frost_threshold = 10)
 # Error: must be between -5 and 5
 
-# v_xypair validator - x and y must have same length and meet min_len
+# v_xypair validator - x and y must have same length and meet min/max length constraints
 canola$set(phenology = list(thermaltime = list(
   x = c(1, 2),
   y = c(0, 1, 2)
@@ -177,11 +177,11 @@ optree provides a collection of ready-to-use validators for common validation pa
 
 - **`v_numeric_scalar()`** – Validates single numeric values
 - **`v_numeric_range(min, max)`** – Validates numeric values within a range
-- **`v_numeric_vector(min_len, finite)`** – Validates numeric vectors with length/finiteness constraints
+- **`v_numeric_vector(min_len, finite)`** – Validates numeric vectors with length/finiteness constraints (`min_len` must be a non-negative whole number; `finite` must be a single logical)
 - **`v_logical_scalar()`** – Validates single logical values
-- **`v_character_scalar(non_empty)`** – Validates single character values, optionally non-empty
+- **`v_character_scalar()`** – Validates single non-empty character values
 - **`v_enum(choices)`** – Validates that value is one of predefined choices
-- **`v_xypair(min_len)`** – Validates paired x/y lists (useful for time series, phenology data, etc.)
+- **`v_xypair(min_len, max_len = NULL)`** – Validates paired x/y lists with optional upper length bound (`max_len` must be `NULL` or a non-negative whole number)
 
 For more details and examples, see the [Validators Vignette](vignettes/validators.Rmd).
 

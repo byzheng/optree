@@ -33,7 +33,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="index.html">optree</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.1.0</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.1.1</span>
       </span>
     </div>
 
@@ -211,7 +211,7 @@
 <span><span class="va">canola</span><span class="op">$</span><span class="fu">set</span><span class="op">(</span>frost_threshold <span class="op">=</span> <span class="fl">10</span><span class="op">)</span></span>
 <span><span class="co"># Error: must be between -5 and 5</span></span>
 <span></span>
-<span><span class="co"># v_xypair validator - x and y must have same length and meet min_len</span></span>
+<span><span class="co"># v_xypair validator - x and y must have same length and meet min/max length constraints</span></span>
 <span><span class="va">canola</span><span class="op">$</span><span class="fu">set</span><span class="op">(</span>phenology <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>thermaltime <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
 <span>  x <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">2</span><span class="op">)</span>,</span>
 <span>  y <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">1</span>, <span class="fl">2</span><span class="op">)</span></span>
@@ -297,15 +297,15 @@
 <li>
 <strong><code>v_numeric_range(min, max)</code></strong> – Validates numeric values within a range</li>
 <li>
-<strong><code>v_numeric_vector(min_len, finite)</code></strong> – Validates numeric vectors with length/finiteness constraints</li>
+<strong><code>v_numeric_vector(min_len, finite)</code></strong> – Validates numeric vectors with length/finiteness constraints (<code>min_len</code> must be a non-negative whole number; <code>finite</code> must be a single logical)</li>
 <li>
 <strong><code><a href="reference/v_logical_scalar.html">v_logical_scalar()</a></code></strong> – Validates single logical values</li>
 <li>
-<strong><code>v_character_scalar(non_empty)</code></strong> – Validates single character values, optionally non-empty</li>
+<strong><code><a href="reference/v_character_scalar.html">v_character_scalar()</a></code></strong> – Validates single non-empty character values</li>
 <li>
 <strong><code>v_enum(choices)</code></strong> – Validates that value is one of predefined choices</li>
 <li>
-<strong><code>v_xypair(min_len)</code></strong> – Validates paired x/y lists (useful for time series, phenology data, etc.)</li>
+<strong><code>v_xypair(min_len, max_len = NULL)</code></strong> – Validates paired x/y lists with optional upper length bound (<code>max_len</code> must be <code>NULL</code> or a non-negative whole number)</li>
 </ul>
 <p>For more details and examples, see the <a href="vignettes/validators.Rmd">Validators Vignette</a>.</p>
 </div>

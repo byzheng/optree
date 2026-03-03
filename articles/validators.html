@@ -32,7 +32,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">optree</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.1.0</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.1.1</span>
       </span>
     </div>
 
@@ -191,6 +191,9 @@ length and finiteness requirements.</p>
 <p>Parameters: - <code>min_len</code>: Minimum required vector length
 (default: 1) - <code>finite</code>: If TRUE (default), rejects
 Inf/-Inf/NaN values. If FALSE, they are allowed.</p>
+<p>Argument rules: - <code>min_len</code> must be a single non-negative
+whole number. - <code>finite</code> must be a single logical value
+(<code>TRUE</code> or <code>FALSE</code>).</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Any numeric vector</span></span>
 <span><span class="va">validator</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/v_numeric_vector.html">v_numeric_vector</a></span><span class="op">(</span><span class="op">)</span></span>
@@ -205,7 +208,11 @@ Inf/-Inf/NaN values. If FALSE, they are allowed.</p>
 <span><span class="co"># Finite values only (no Inf, -Inf, NaN)</span></span>
 <span><span class="va">validator</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/v_numeric_vector.html">v_numeric_vector</a></span><span class="op">(</span>finite <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span><span class="fu">validator</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">2</span>, <span class="fl">3</span><span class="op">)</span><span class="op">)</span>   <span class="co"># ✓ OK</span></span>
-<span><span class="fu">validator</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="cn">Inf</span>, <span class="fl">3</span><span class="op">)</span><span class="op">)</span> <span class="co"># ✗ Error: must be finite</span></span></code></pre></div>
+<span><span class="fu">validator</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="cn">Inf</span>, <span class="fl">3</span><span class="op">)</span><span class="op">)</span> <span class="co"># ✗ Error: must be finite</span></span>
+<span></span>
+<span><span class="co"># Invalid validator arguments</span></span>
+<span><span class="fu"><a href="../reference/v_numeric_vector.html">v_numeric_vector</a></span><span class="op">(</span>min_len <span class="op">=</span> <span class="fl">1.5</span><span class="op">)</span> <span class="co"># ✗ Error: min_len must be a single non-negative whole number</span></span>
+<span><span class="fu"><a href="../reference/v_numeric_vector.html">v_numeric_vector</a></span><span class="op">(</span>finite <span class="op">=</span> <span class="cn">NA</span><span class="op">)</span>   <span class="co"># ✗ Error: finite must be a single logical value</span></span></code></pre></div>
 </div>
 </div>
 <div class="section level4">
@@ -233,25 +240,40 @@ values</p>
 <h4 id="structured-data-validators">Structured Data Validators<a class="anchor" aria-label="anchor" href="#structured-data-validators"></a>
 </h4>
 <div class="section level5">
-<h5 id="v_xypairmin_len-1">
-<code>v_xypair(min_len = 1)</code><a class="anchor" aria-label="anchor" href="#v_xypairmin_len-1"></a>
+<h5 id="v_xypairmin_len-1-max_len-null">
+<code>v_xypair(min_len = 1, max_len = NULL)</code><a class="anchor" aria-label="anchor" href="#v_xypairmin_len-1-max_len-null"></a>
 </h5>
 <p>Validates that a value is a list with paired <code>x</code> and
 <code>y</code> components. Useful for time-series data, phenology
 parameters, or any paired numeric sequences.</p>
 <p>Parameters: - <code>min_len</code>: Minimum required length for both
-x and y vectors (default: 1)</p>
+x and y vectors (default: 1) - <code>max_len</code>: Maximum allowed
+length for both x and y vectors (default: <code>NULL</code>, no upper
+bound)</p>
+<p>Argument rules: - <code>min_len</code> must be a single non-negative
+whole number. - <code>max_len</code> must be <code>NULL</code> or a
+single non-negative whole number. - If <code>max_len</code> is set, it
+must be greater than or equal to <code>min_len</code>.</p>
 <p>The validator checks that: - The value is a list - It has both
 <code>x</code> and <code>y</code> named elements - Neither
 <code>x</code> nor <code>y</code> is NULL - Both <code>x</code> and
 <code>y</code> are atomic vectors - Neither contains NA values - Both
-have the same length - Both are at least <code>min_len</code> long</p>
+have the same length - Both are at least <code>min_len</code> long -
+Both are at most <code>max_len</code> long (when <code>max_len</code> is
+provided)</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">validator</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/v_xypair.html">v_xypair</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="fu">validator</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>x <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">2</span>, <span class="fl">3</span><span class="op">)</span>, y <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">10</span>, <span class="fl">20</span>, <span class="fl">30</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>  <span class="co"># ✓ OK</span></span>
 <span></span>
 <span><span class="va">validator</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/v_xypair.html">v_xypair</a></span><span class="op">(</span>min_len <span class="op">=</span> <span class="fl">2</span><span class="op">)</span></span>
 <span><span class="fu">validator</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>x <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span>, y <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">10</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>  <span class="co"># ✗ Error: xypair length must be &gt;= 2</span></span>
+<span></span>
+<span><span class="va">validator</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/v_xypair.html">v_xypair</a></span><span class="op">(</span>min_len <span class="op">=</span> <span class="fl">2</span>, max_len <span class="op">=</span> <span class="fl">3</span><span class="op">)</span></span>
+<span><span class="fu">validator</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>x <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">2</span>, <span class="fl">3</span><span class="op">)</span>, y <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">10</span>, <span class="fl">20</span>, <span class="fl">30</span><span class="op">)</span><span class="op">)</span><span class="op">)</span> <span class="co"># ✓ OK</span></span>
+<span><span class="fu">validator</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>x <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">2</span>, <span class="fl">3</span>, <span class="fl">4</span><span class="op">)</span>, y <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">10</span>, <span class="fl">20</span>, <span class="fl">30</span>, <span class="fl">40</span><span class="op">)</span><span class="op">)</span><span class="op">)</span> <span class="co"># ✗ Error: xypair length must be &lt;= 3</span></span>
+<span></span>
+<span><span class="co"># Invalid validator arguments</span></span>
+<span><span class="fu"><a href="../reference/v_xypair.html">v_xypair</a></span><span class="op">(</span>min_len <span class="op">=</span> <span class="fl">4</span>, max_len <span class="op">=</span> <span class="fl">2</span><span class="op">)</span> <span class="co"># ✗ Error: max_len must be greater than or equal to min_len</span></span>
 <span></span>
 <span><span class="fu">validator</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>x <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">2</span><span class="op">)</span>, y <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">10</span>, <span class="fl">20</span>, <span class="fl">30</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>  <span class="co"># ✗ Error: different lengths</span></span>
 <span><span class="fu">validator</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>x <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">2</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>  <span class="co"># ✗ Error: missing y</span></span></code></pre></div>

@@ -17,7 +17,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">optree</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.1.0</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.1.1</span>
       </span>
     </div>
 
@@ -57,6 +57,14 @@
       <small>Source: <a href="https://github.com/byzheng/optree/blob/master/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="page-header" data-toc-text="0.1.1" id="optree-011">optree 0.1.1<a class="anchor" aria-label="anchor" href="#optree-011"></a></h2>
+<ul><li>Added <code>max_len</code> support to <code>v_xypair(min_len = 1, max_len = NULL)</code> to optionally enforce an upper bound on paired vector length.</li>
+<li>Added constructor argument validation for <code><a href="../reference/v_xypair.html">v_xypair()</a></code> (<code>min_len</code>/<code>max_len</code> type and range checks, and <code>max_len &gt;= min_len</code>).</li>
+<li>Added constructor argument validation for <code><a href="../reference/v_numeric_vector.html">v_numeric_vector()</a></code> (<code>min_len</code> must be a non-negative whole number and <code>finite</code> must be a single logical value).</li>
+<li>Expanded validator tests for new argument validation and <code>max_len</code> behavior.</li>
+<li>Updated validator documentation in the vignette and README to reflect the new API and validation rules.</li>
+</ul></div>
     <div class="section level2">
 <h2 class="page-header" data-toc-text="0.1.0" id="optree-010">optree 0.1.0<small>2026-02-16</small><a class="anchor" aria-label="anchor" href="#optree-010"></a></h2>
 <ul><li>This is the first release of optree.</li>

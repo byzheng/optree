@@ -1,3 +1,7 @@
+# optree 0.1.2
+
+* fix a typo in the name of the package in DESCRIPTION file.
+
 # optree 0.1.1
 
 * Added `max_len` support to `v_xypair(min_len = 1, max_len = NULL)` to optionally enforce an upper bound on paired vector length.

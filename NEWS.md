@@ -1,3 +1,7 @@
+# optree 0.1.3
+
+* add a new validator function `v_character_vector` for character vectors.
+
 # optree 0.1.2
 
 * fix a typo in the name of the package in DESCRIPTION file.

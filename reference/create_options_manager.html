@@ -19,7 +19,7 @@ It is ideal for managing complex, interdependent settings in R packages or proje
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">optree</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.1.3</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.2.0</span>
       </span>
     </div>
 
@@ -34,6 +34,9 @@ It is ideal for managing complex, interdependent settings in R packages or proje
     <span class="caret"></span>
   </a>
   <ul class="dropdown-menu" role="menu"><li>
+      <a href="../articles/collections.html">Using Collections in optree</a>
+    </li>
+    <li>
       <a href="../articles/validators.html">Using Validators in optree</a>
     </li>
   </ul></li>
@@ -76,14 +79,18 @@ It is ideal for managing complex, interdependent settings in R packages or proje
 
 <dl><dt id="arg-defaults">defaults<a class="anchor" aria-label="anchor" href="#arg-defaults"></a></dt>
 <dd><p>A named list specifying the default values of the options.
-Nested lists can be used to represent hierarchical groups of related options.</p></dd>
+Nested lists can be used to represent hierarchical groups of related options.
+A group containing <code>"_as_collection" = TRUE</code> is a collection of named
+records. The marker is schema metadata and is not included in the options.</p></dd>
 
 
 <dt id="arg-validators">validators<a class="anchor" aria-label="anchor" href="#arg-validators"></a></dt>
 <dd><p>An optional named list of functions used to validate options.
 Each function should take a single argument (the value being set) and
 throw an error if the value is invalid. Names correspond to option paths,
-e.g., <code>"thermaltime"</code> for a top-level group.</p></dd>
+e.g., <code>"thermaltime"</code> for a top-level group. For a collection, define
+each required record field using <code>"&lt;collection path&gt;._default.&lt;field&gt;"</code>.
+Each field validator receives the complete field value.</p></dd>
 
 </dl></div>
     <div id="value">
@@ -120,6 +127,16 @@ updating deeply nested options without reconstructing the entire hierarchy.</p>
 <p><strong>Transactional updates</strong>: If validation fails during a <code>set()</code> call, all
 changes are rolled back and the options remain in their previous state. This ensures
 that the options manager is always in a consistent state.</p>
+<p><strong>Collections</strong>: Each collection is a named list of records with exactly the
+fields declared by its <code>_default</code> validators. Existing records are checked
+when the manager is created. New records must supply every field; existing
+records may be updated partially. Only changed records are revalidated,
+although ordinary validators still run as usual. Collections cannot be nested
+inside collection records. <code>reset()</code> removes added records and restores the
+original collection. Empty collections are supported. Record names must be
+unique, non-empty and contain no dots. <code>_default</code> and <code>_as_collection</code> are
+reserved names within collections. Validators for individual records are not
+supported; use <code>_default</code> for record fields or validate the whole collection.</p>
     </div>
 
     <div id="ref-examples">
@@ -162,6 +179,20 @@ that the options manager is always in a consistent state.</p>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Reset to defaults</span></span></span>
 <span class="r-in"><span><span class="va">canola</span><span class="op">$</span><span class="fu">reset</span><span class="op">(</span><span class="op">)</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="va">sources</span> <span class="op">&lt;-</span> <span class="fu">create_options_manager</span><span class="op">(</span></span></span>
+<span class="r-in"><span>    defaults <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>items <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span></span>
+<span class="r-in"><span>        <span class="st">"_as_collection"</span> <span class="op">=</span> <span class="cn">TRUE</span>,</span></span>
+<span class="r-in"><span>        code_base <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>type <span class="op">=</span> <span class="st">"files"</span>, enabled <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
+<span class="r-in"><span>    <span class="op">)</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>    validators <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span></span>
+<span class="r-in"><span>        <span class="st">"items._default.type"</span> <span class="op">=</span> <span class="fu"><a href="v_character_scalar.html">v_character_scalar</a></span><span class="op">(</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>        <span class="st">"items._default.enabled"</span> <span class="op">=</span> <span class="fu"><a href="v_logical_scalar.html">v_logical_scalar</a></span><span class="op">(</span><span class="op">)</span></span></span>
+<span class="r-in"><span>    <span class="op">)</span></span></span>
+<span class="r-in"><span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">sources</span><span class="op">$</span><span class="fu">set</span><span class="op">(</span><span class="st">"items.crop_model"</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>type <span class="op">=</span> <span class="st">"files"</span>, enabled <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">sources</span><span class="op">$</span><span class="fu">set</span><span class="op">(</span><span class="st">"items.crop_model.enabled"</span> <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">sources</span><span class="op">$</span><span class="fu">reset</span><span class="op">(</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>

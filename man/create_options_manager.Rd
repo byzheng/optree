@@ -8,12 +8,16 @@ create_options_manager(defaults, validators = list())
 }
 \arguments{
 \item{defaults}{A named list specifying the default values of the options.
-Nested lists can be used to represent hierarchical groups of related options.}
+Nested lists can be used to represent hierarchical groups of related options.
+A group containing \code{"_as_collection" = TRUE} is a collection of named
+records. The marker is schema metadata and is not included in the options.}
 
 \item{validators}{An optional named list of functions used to validate options.
 Each function should take a single argument (the value being set) and
 throw an error if the value is invalid. Names correspond to option paths,
-e.g., \code{"thermaltime"} for a top-level group.}
+e.g., \code{"thermaltime"} for a top-level group. For a collection, define
+each required record field using \code{"<collection path>._default.<field>"}.
+Each field validator receives the complete field value.}
 }
 \value{
 A list with three functions:
@@ -51,6 +55,17 @@ updating deeply nested options without reconstructing the entire hierarchy.
 \strong{Transactional updates}: If validation fails during a \code{set()} call, all
 changes are rolled back and the options remain in their previous state. This ensures
 that the options manager is always in a consistent state.
+
+\strong{Collections}: Each collection is a named list of records with exactly the
+fields declared by its \verb{_default} validators. Existing records are checked
+when the manager is created. New records must supply every field; existing
+records may be updated partially. Only changed records are revalidated,
+although ordinary validators still run as usual. Collections cannot be nested
+inside collection records. \code{reset()} removes added records and restores the
+original collection. Empty collections are supported. Record names must be
+unique, non-empty and contain no dots. \verb{_default} and \verb{_as_collection} are
+reserved names within collections. Validators for individual records are not
+supported; use \verb{_default} for record fields or validate the whole collection.
 }
 \examples{
 # Define a validator for a group
@@ -90,5 +105,19 @@ canola$set(
 
 # Reset to defaults
 canola$reset()
+
+sources <- create_options_manager(
+    defaults = list(items = list(
+        "_as_collection" = TRUE,
+        code_base = list(type = "files", enabled = TRUE)
+    )),
+    validators = list(
+        "items._default.type" = v_character_scalar(),
+        "items._default.enabled" = v_logical_scalar()
+    )
+)
+sources$set("items.crop_model" = list(type = "files", enabled = FALSE))
+sources$set("items.crop_model.enabled" = TRUE)
+sources$reset()
 
 }

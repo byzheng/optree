@@ -293,3 +293,187 @@ test_that("create_options_manager rejects validators with non-existent paths", {
         "Validator path 'a.y' does not exist"
     )
 })
+
+collection_manager <- function(counter = NULL) {
+    create_options_manager(
+        defaults = list(
+            collection = list(
+                folder = "collection",
+                items = list(
+                    "_as_collection" = TRUE,
+                    code_base = list(type = "files", enabled = TRUE),
+                    crop_model = list(type = "files", enabled = FALSE)
+                )
+            ),
+            other = 1
+        ),
+        validators = list(
+            "collection.items._default.type" = function(value) {
+                if (!is.null(counter)) counter$count <- counter$count + 1L
+                v_character_scalar()(value)
+            },
+            "collection.items._default.enabled" = v_logical_scalar()
+        )
+    )
+}
+
+test_that("collections add and update complete records and reset", {
+    manager <- collection_manager()
+    expect_false("_as_collection" %in% names(manager$get("collection.items")))
+    manager$set("collection.items.history" = list(type = "history", enabled = FALSE))
+    expect_equal(manager$get("collection.items.history"), list(type = "history", enabled = FALSE))
+    manager$set("collection.items.history.enabled" = TRUE)
+    expect_equal(manager$get("collection.items.history"), list(type = "history", enabled = TRUE))
+    manager$reset()
+    expect_error(manager$get("collection.items.history"), "not defined")
+    expect_false(manager$get("collection.items.crop_model.enabled"))
+})
+
+test_that("collection validation checks only changed records", {
+    counter <- new.env()
+    counter$count <- 0L
+    manager <- collection_manager(counter)
+    expect_equal(counter$count, 2L)
+    counter$count <- 0L
+    manager$set(other = 2)
+    expect_equal(counter$count, 0L)
+    manager$set("collection.items.code_base.enabled" = FALSE)
+    expect_equal(counter$count, 1L)
+    manager$set(
+        "collection.items.code_base.type" = "new",
+        "collection.items.code_base.enabled" = TRUE,
+        "collection.items.crop_model.enabled" = TRUE
+    )
+    expect_equal(counter$count, 3L)
+})
+
+test_that("collection records reject missing, unknown, and invalid fields atomically", {
+    manager <- collection_manager()
+    before <- manager$get()
+    expect_error(manager$set("collection.items.new" = list(type = "files")), "Missing field")
+    expect_error(manager$set("collection.items.new" = list(type = "files", enabled = TRUE, extra = 1)), "Unknown field")
+    expect_error(manager$set("collection.items.code_base.enabled" = "yes"), "collection.items.code_base.enabled")
+    expect_error(
+        manager$set("collection.items.code_base.type" = "files", "collection.items.code_base.enabled" = NULL),
+        "collection.items.code_base.enabled"
+    )
+    expect_error(manager$set("collection.items.code_base.extra" = 1), "Unknown field")
+    expect_error(manager$set(other = 2, "collection.items.new" = list(type = "files")), "Missing field")
+    expect_equal(manager$get(), before)
+    expect_error(manager$set(collection = 42), "contains a collection")
+    expect_error(manager$set(collection = NULL), "contains a collection")
+    expect_equal(manager$get(), before)
+})
+
+test_that("collection schema and initial records are checked", {
+    expect_error(
+        create_options_manager(list(items = list("_as_collection" = TRUE))),
+        "at least one _default field validator"
+    )
+    expect_error(
+        create_options_manager(
+            list(items = list("_as_collection" = TRUE, bad = list(type = 1))),
+            list("items._default.type" = v_character_scalar())
+        )
+    )
+    expect_error(
+        create_options_manager(
+            list(items = list("_as_collection" = TRUE, bad = list(type = "x"))),
+            list("items._default.type" = v_character_scalar(), "items._default.enabled" = v_logical_scalar())
+        ),
+        "Missing field"
+    )
+    expect_error(
+        create_options_manager(
+            list(items = list("_as_collection" = TRUE)),
+            list("items._default.type.nested" = v_character_scalar())
+        ),
+        "Invalid collection field validator path"
+    )
+    expect_error(
+        create_options_manager(
+            list(items = list("_as_collection" = TRUE, bad = list("_as_collection" = TRUE))),
+            list("items._default.type" = v_character_scalar())
+        ),
+        "cannot be nested"
+    )
+})
+
+test_that("nested collections are rejected in added records", {
+    manager <- create_options_manager(
+        list(items = list("_as_collection" = TRUE)),
+        list("items._default.settings" = function(value) NULL)
+    )
+    expect_error(
+        manager$set("items.new" = list(settings = list("_as_collection" = TRUE))),
+        "cannot be nested"
+    )
+    expect_length(manager$get("items"), 0)
+})
+
+test_that("empty collections and root collections accept new records", {
+    manager <- create_options_manager(
+        list(items = list("_as_collection" = TRUE)),
+        list("items._default.type" = v_character_scalar())
+    )
+    manager$set("items.new" = list(type = "files"))
+    expect_equal(manager$get("items.new.type"), "files")
+    manager$reset()
+    expect_length(manager$get("items"), 0)
+
+    root <- create_options_manager(
+        list("_as_collection" = TRUE),
+        list("_default.type" = v_character_scalar())
+    )
+    root$set(new = list(type = "files"))
+    expect_equal(root$get("new.type"), "files")
+})
+
+test_that("collection-wide validators still run and failed updates roll back", {
+    manager <- create_options_manager(
+        list(items = list("_as_collection" = TRUE, first = list(type = "files"))),
+        list(
+            "items._default.type" = v_character_scalar(),
+            items = function(value) {
+                if (length(value) > 1) stop("too many items")
+            }
+        )
+    )
+    expect_error(manager$set("items.second" = list(type = "files")), "too many items")
+    expect_error(manager$get("items.second"), "not defined")
+})
+
+test_that("collection names are unique and valid paths", {
+    duplicated <- structure(
+        list(TRUE, list(type = "a"), list(type = "b")),
+        names = c("_as_collection", "same", "same")
+    )
+    expect_error(
+        create_options_manager(
+            list(items = duplicated),
+            list("items._default.type" = v_character_scalar())
+        ),
+        "unique names"
+    )
+    manager <- collection_manager()
+    expect_error(
+        manager$set(collection = list(items = list("bad.name" = list(type = "files", enabled = TRUE)))),
+        "unique names"
+    )
+})
+
+test_that("ordinary options named _default remain supported", {
+    manager <- create_options_manager(
+        list("_default" = list(type = "files")),
+        list("_default.type" = v_character_scalar())
+    )
+    manager$set("_default.type" = "history")
+    expect_equal(manager$get("_default.type"), "history")
+
+    nested <- create_options_manager(
+        list("_default" = list(items = list("_as_collection" = TRUE))),
+        list("_default.items._default.type" = v_character_scalar())
+    )
+    nested$set("_default.items.new" = list(type = "files"))
+    expect_equal(nested$get("_default.items.new.type"), "files")
+})

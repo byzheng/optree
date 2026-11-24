@@ -1,0 +1,182 @@
+---
+title: "Using Collections in optree"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Using Collections in optree}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+# Using Collections in optree
+
+Ordinary option groups have fixed keys defined in `defaults`. A collection is
+useful when the names of records are not all known in advance. It is a named
+list, not a data frame: each record has the same required fields and can be
+added or updated at runtime.
+
+## Define a collection
+
+Mark the group containing the records with `"_as_collection" = TRUE` in
+`defaults`. For each required record field, supply a validator at
+`<collection path>._default.<field>`:
+
+```{r}
+library(optree)
+
+sources <- create_options_manager(
+  defaults = list(
+    collection = list(
+      folder = "collection",
+      items = list(
+        "_as_collection" = TRUE,
+        code_base = list(type = "files", folder = "code-base", enabled = TRUE),
+        crop_model = list(type = "files", folder = "crop-model", enabled = FALSE)
+      )
+    )
+  ),
+  validators = list(
+    "collection.items._default.type" = v_character_scalar(),
+    "collection.items._default.folder" = v_character_scalar(),
+    "collection.items._default.enabled" = v_logical_scalar()
+  )
+)
+
+sources$get("collection.items")
+```
+
+The marker is schema metadata, not an item or an option returned by `get()`.
+Here `collection.folder` is an ordinary option; the records are under
+`collection.items`.
+
+The `_default` validators define the record schema, not default values for
+missing fields. Each record must be a named list with **exactly** the declared
+fields. Every field is required and unknown fields are rejected. Each
+validator receives the complete field value; use a suitable validator for
+scalar, vector, or structured values.
+
+Initial records are validated when the manager is created. To start with no
+records, supply the marker alone:
+
+```{r}
+empty_sources <- create_options_manager(
+  defaults = list(items = list("_as_collection" = TRUE)),
+  validators = list(
+    "items._default.type" = v_character_scalar(),
+    "items._default.enabled" = v_logical_scalar()
+  )
+)
+empty_sources$get("items")
+```
+
+## Add and update records
+
+Add a record using a new name and supply every declared field:
+
+```{r}
+sources$set("collection.items.history" = list(
+  type = "commit-history",
+  folder = "commit-history",
+  enabled = FALSE
+))
+sources$get("collection.items.history")
+```
+
+Update an existing record with only the fields that need to change. You can
+use dot-separated paths or nested lists, as with ordinary options:
+
+```{r}
+sources$set("collection.items.history.enabled" = TRUE)
+sources$set(collection = list(items = list(
+  history = list(folder = "history")
+)))
+sources$get("collection.items.history")
+```
+
+In a single `set()` call, changes to the same record are merged before that
+record is validated. The complete changed record is checked, but unchanged
+records are not revalidated by the `_default` field validators.
+
+```{r}
+sources$set(
+  "collection.items.history.type" = "history",
+  "collection.items.history.enabled" = FALSE
+)
+```
+
+## Validation and rollback
+
+An incomplete record, an unknown field, or a value rejected by its validator
+causes an error. For example:
+
+```{r, error = TRUE}
+sources$set("collection.items.new_source" = list(type = "files"))
+```
+
+```{r, error = TRUE}
+sources$set("collection.items.history.enabled" = "yes")
+```
+
+An unsuccessful `set()` leaves all options unchanged, including when a call
+tries to update multiple options:
+
+```{r}
+before <- sources$get()
+tryCatch(
+  sources$set(
+    "collection.folder" = "new-folder",
+    "collection.items.history.extra" = 1
+  ),
+  error = function(e) message(conditionMessage(e))
+)
+identical(sources$get(), before)
+```
+
+## Collection-wide rules
+
+Use an ordinary validator on the collection path for rules involving the
+collection as a whole. It receives the complete collection, and, like other
+ordinary validators, runs after every `set()` call. Such a validator can inspect
+all records, even though `_default` validators only check changed records.
+Ordinary validators are not run when the manager is created.
+
+```{r}
+limited <- create_options_manager(
+  defaults = list(items = list(
+    "_as_collection" = TRUE,
+    first = list(type = "files")
+  )),
+  validators = list(
+    "items._default.type" = v_character_scalar(),
+    items = function(value) {
+      if (length(value) > 2) stop("at most two items are allowed")
+    }
+  )
+)
+limited$set("items.second" = list(type = "files"))
+```
+
+## Names, nesting, and reset
+
+- Record names must be non-empty, unique, and must not contain dots.
+- `_default` and `_as_collection` are reserved names within collections.
+- A collection may appear at an ordinary option path, including the root, but
+  collections cannot be nested inside collection records.
+- `_default` validators describe direct record fields; validators for
+  individual records or nested field paths are not supported.
+- Each collection must declare at least one `_default` field validator.
+
+`reset()` restores the original defaults, including the original records and
+their values. Records added later are removed:
+
+```{r}
+sources$reset()
+names(sources$get("collection.items"))
+sources$get("collection.items.crop_model.enabled")
+```

@@ -6,10 +6,14 @@
 #'
 #' @param defaults A named list specifying the default values of the options.
 #'   Nested lists can be used to represent hierarchical groups of related options.
+#'   A group containing `"_as_collection" = TRUE` is a collection of named
+#'   records. The marker is schema metadata and is not included in the options.
 #' @param validators An optional named list of functions used to validate options.
 #'   Each function should take a single argument (the value being set) and
 #'   throw an error if the value is invalid. Names correspond to option paths,
-#'   e.g., `"thermaltime"` for a top-level group.
+#'   e.g., `"thermaltime"` for a top-level group. For a collection, define
+#'   each required record field using `"<collection path>._default.<field>"`.
+#'   Each field validator receives the complete field value.
 #'
 #' @return A list with three functions:
 #' \describe{
@@ -41,6 +45,17 @@
 #' **Transactional updates**: If validation fails during a \code{set()} call, all
 #' changes are rolled back and the options remain in their previous state. This ensures
 #' that the options manager is always in a consistent state.
+#'
+#' **Collections**: Each collection is a named list of records with exactly the
+#' fields declared by its `_default` validators. Existing records are checked
+#' when the manager is created. New records must supply every field; existing
+#' records may be updated partially. Only changed records are revalidated,
+#' although ordinary validators still run as usual. Collections cannot be nested
+#' inside collection records. `reset()` removes added records and restores the
+#' original collection. Empty collections are supported. Record names must be
+#' unique, non-empty and contain no dots. `_default` and `_as_collection` are
+#' reserved names within collections. Validators for individual records are not
+#' supported; use `_default` for record fields or validate the whole collection.
 #'
 #' @examples
 #' # Define a validator for a group
@@ -81,6 +96,20 @@
 #' # Reset to defaults
 #' canola$reset()
 #'
+#' sources <- create_options_manager(
+#'     defaults = list(items = list(
+#'         "_as_collection" = TRUE,
+#'         code_base = list(type = "files", enabled = TRUE)
+#'     )),
+#'     validators = list(
+#'         "items._default.type" = v_character_scalar(),
+#'         "items._default.enabled" = v_logical_scalar()
+#'     )
+#' )
+#' sources$set("items.crop_model" = list(type = "files", enabled = FALSE))
+#' sources$set("items.crop_model.enabled" = TRUE)
+#' sources$reset()
+#'
 #' @export
 create_options_manager <- function(defaults, validators = list()) {
     if (!is.list(defaults) || is.null(names(defaults))) {
@@ -96,7 +125,6 @@ create_options_manager <- function(defaults, validators = list()) {
     }
 
     if (length(validators)) {
-        validate_paths(defaults, names(validators))
         if (is.null(names(validators)) || any(names(validators) == "")) {
             stop("All validators must be named", call. = FALSE)
         }
@@ -110,6 +138,23 @@ create_options_manager <- function(defaults, validators = list()) {
                 ),
                 call. = FALSE
             )
+        }
+    }
+
+    extracted <- extract_collections(defaults)
+    defaults <- extracted$defaults
+    collections <- collection_schemas(extracted$paths, validators)
+    record_validators <- names(validators)[vapply(
+        names(validators), is_collection_field_validator, logical(1), paths = extracted$paths
+    )]
+    validators <- validators[!names(validators) %in% record_validators]
+    validate_paths(defaults, names(validators))
+
+    for (path in extracted$paths) {
+        items <- get_collection_at_path(defaults, path)
+        validate_collection_names(items, path)
+        for (name in names(items)) {
+            validate_collection_record(items[[name]], collections[[collection_key(path)]], c(path, name))
         }
     }
 
@@ -189,12 +234,18 @@ create_options_manager <- function(defaults, validators = list()) {
                 stop("All arguments must be named")
             }
 
-            # Save old state for rollback if validation fails
-            old_options <- state$options
-
             # Convert dot-separated paths to nested lists
             processed_args <- list()
             for (nm in names(args)) {
+                if (is.null(args[[nm]]) && !grepl("\\.", nm) &&
+                    collection_key(character()) %in% names(collections)) {
+                    stop(sprintf("Record '%s' must be a named list", nm), call. = FALSE)
+                }
+                if (is.null(args[[nm]]) && !grepl("\\.", nm) &&
+                    length(collections) &&
+                    any(names(collections) == nm | startsWith(names(collections), paste0(nm, ".")))) {
+                    stop(sprintf("Option '%s' contains a collection and must be a group", nm), call. = FALSE)
+                }
                 if (grepl("\\.", nm)) {
                     # Path with dots: convert to nested structure
                     keys <- strsplit(nm, "\\.")[[1]]
@@ -216,28 +267,27 @@ create_options_manager <- function(defaults, validators = list()) {
                 }
             }
 
-            for (nm in names(processed_args)) {
-                if (!nm %in% names(defaults)) {
-                    stop(sprintf("Option '%s' is not defined", nm), call. = FALSE)
-                }
-
-                state$options[[nm]] <- validate_and_merge(
-                    current  = state$options[[nm]],
-                    update   = processed_args[[nm]],
-                    defaults = defaults[[nm]],
-                    path     = nm
+            # Build the complete candidate before committing any changes.
+            candidate <- state$options
+            if (collection_key(character()) %in% names(collections)) {
+                candidate <- validate_and_merge(
+                    current = candidate, update = processed_args, defaults = defaults,
+                    path = character(), collections = collections
                 )
+            } else {
+                for (nm in names(processed_args)) {
+                    if (!nm %in% names(defaults)) {
+                        stop(sprintf("Option '%s' is not defined", nm), call. = FALSE)
+                    }
+
+                    candidate[[nm]] <- validate_and_merge(
+                        current = candidate[[nm]], update = processed_args[[nm]],
+                        defaults = defaults[[nm]], path = nm, collections = collections
+                    )
+                }
             }
-
-            # 🔥 run validators AFTER merge, rollback on error
-            tryCatch({
-                run_validators(state$options, validators)
-            }, error = function(e) {
-                # Rollback to old state
-                state$options <- old_options
-                stop(e$message, call. = FALSE)
-            })
-
+            run_validators(candidate, validators)
+            state$options <- candidate
             invisible(state$options)
         },
         reset = function() {
@@ -248,8 +298,38 @@ create_options_manager <- function(defaults, validators = list()) {
 }
 
 
-validate_and_merge <- function(current, update, defaults, path) {
+validate_and_merge <- function(current, update, defaults, path, collections = list()) {
+    key <- collection_key(path)
+    if (key %in% names(collections)) {
+        validate_collection_names(update, path)
+        for (name in names(update)) {
+            record_path <- c(path, name)
+            changes <- update[[name]]
+            if (!is.list(changes) || is.data.frame(changes) ||
+                is.null(names(changes)) || any(names(changes) == "") ||
+                anyDuplicated(names(changes))) {
+                stop(sprintf("Record '%s' must be a named list", paste(record_path, collapse = ".")), call. = FALSE)
+            }
+            unknown <- setdiff(names(changes), names(collections[[key]]))
+            if (length(unknown)) {
+                stop(sprintf("Unknown field(s) for '%s': %s", paste(record_path, collapse = "."), paste(unknown, collapse = ", ")), call. = FALSE)
+            }
+            record <- if (name %in% names(current)) {
+                merge_lists(current[[name]], changes)
+            } else {
+                changes
+            }
+            validate_collection_record(record, collections[[key]], record_path)
+            current[name] <- list(record)
+        }
+        return(current)
+    }
+
     if (!is.list(update)) {
+        prefix <- if (length(path)) paste0(paste(path, collapse = "."), ".") else ""
+        if (length(collections) && any(startsWith(names(collections), prefix))) {
+            stop(sprintf("Option '%s' contains a collection and must be a group", paste(path, collapse = ".")), call. = FALSE)
+        }
         return(update)
     }
 
@@ -274,15 +354,143 @@ validate_and_merge <- function(current, update, defaults, path) {
             current = current[[nm]],
             update = update[[nm]],
             defaults = defaults[[nm]],
-            path = c(path, nm)
+            path = c(path, nm),
+            collections = collections
         )
     }
 
     current
 }
 
+collection_key <- function(path) {
+    if (length(path)) paste(path, collapse = ".") else "."
+}
 
+extract_collections <- function(defaults) {
+    paths <- list()
+    extract <- function(value, path, in_collection = FALSE) {
+        if (!is.list(value)) {
+            return(value)
+        }
+        marked <- "_as_collection" %in% names(value)
+        if (marked) {
+            if (in_collection) {
+                stop("Collections cannot be nested inside collection records", call. = FALSE)
+            }
+            if (!identical(value[["_as_collection"]], TRUE)) {
+                stop(sprintf("Collection marker at '%s' must be TRUE", paste(path, collapse = ".")), call. = FALSE)
+            }
+            paths[[length(paths) + 1L]] <<- path
+            value[["_as_collection"]] <- NULL
+            validate_collection_names(value, path)
+        }
+        for (name in names(value)) {
+            value[name] <- list(extract(value[[name]], c(path, name), in_collection || marked))
+        }
+        value
+    }
+    result <- extract(defaults, character())
+    list(defaults = result, paths = paths)
+}
 
+is_collection_field_validator <- function(name, paths) {
+    keys <- strsplit(name, "\\.")[[1]]
+    any(vapply(paths, function(path) {
+        length(keys) > length(path) &&
+            identical(keys[seq_along(path)], path) &&
+            keys[length(path) + 1L] == "_default"
+    }, logical(1)))
+}
+
+collection_schemas <- function(paths, validators) {
+    schemas <- list()
+    for (path in paths) {
+        schemas[collection_key(path)] <- list(list())
+    }
+    for (name in names(validators)) {
+        keys <- strsplit(name, "\\.")[[1]]
+        if (!is_collection_field_validator(name, paths)) {
+            for (path in paths) {
+                if (length(keys) > length(path) &&
+                    identical(keys[seq_along(path)], path)) {
+                    stop(sprintf("Validator '%s' must use _default for collection record fields", name), call. = FALSE)
+                }
+            }
+            next
+        }
+        matching_paths <- which(vapply(paths, function(path) {
+            length(keys) > length(path) &&
+                identical(keys[seq_along(path)], path) &&
+                keys[length(path) + 1L] == "_default"
+        }, logical(1)))
+        path <- paths[[matching_paths[1L]]]
+        if (length(keys) != length(path) + 2L) {
+            stop(sprintf("Invalid collection field validator path '%s'", name), call. = FALSE)
+        }
+        key <- collection_key(path)
+        field <- keys[length(keys)]
+        if (!key %in% names(schemas) || field %in% c("", "_default", "_as_collection")) {
+            stop(sprintf("Invalid collection field validator path '%s'", name), call. = FALSE)
+        }
+        if (field %in% names(schemas[[key]])) {
+            stop(sprintf("Duplicate collection field validator '%s'", name), call. = FALSE)
+        }
+        schemas[[key]][field] <- validators[name]
+    }
+    for (path in paths) {
+        if (!length(schemas[[collection_key(path)]])) {
+            stop(sprintf("Collection '%s' must have at least one _default field validator", paste(path, collapse = ".")), call. = FALSE)
+        }
+    }
+    schemas
+}
+
+get_collection_at_path <- function(options, path) {
+    for (key in path) {
+        options <- options[[key]]
+    }
+    options
+}
+
+validate_collection_names <- function(items, path) {
+    if (!is.list(items) || is.data.frame(items) ||
+        (length(items) && (is.null(names(items)) || any(names(items) == "") ||
+            anyDuplicated(names(items)) || any(grepl("\\.", names(items))) ||
+            any(names(items) %in% c("_default", "_as_collection"))))) {
+        stop(sprintf("Collection '%s' must be a named list with unique names without dots", paste(path, collapse = ".")), call. = FALSE)
+    }
+}
+
+validate_collection_record <- function(record, validators, path) {
+    label <- paste(path, collapse = ".")
+    if (!is.list(record) || is.data.frame(record) || is.null(names(record)) ||
+        any(names(record) == "") || anyDuplicated(names(record))) {
+        stop(sprintf("Record '%s' must be a named list", label), call. = FALSE)
+    }
+    missing <- setdiff(names(validators), names(record))
+    unknown <- setdiff(names(record), names(validators))
+    if (length(missing)) {
+        stop(sprintf("Missing field(s) for '%s': %s", label, paste(missing, collapse = ", ")), call. = FALSE)
+    }
+    if (length(unknown)) {
+        stop(sprintf("Unknown field(s) for '%s': %s", label, paste(unknown, collapse = ", ")), call. = FALSE)
+    }
+    has_marker <- function(value) {
+        is.list(value) && ("_as_collection" %in% names(value) ||
+            any(vapply(value, has_marker, logical(1))))
+    }
+    if (has_marker(record)) {
+        stop("Collections cannot be nested inside collection records", call. = FALSE)
+    }
+    for (field in names(validators)) {
+        tryCatch(
+            validators[[field]](record[[field]]),
+            error = function(e) {
+                stop(sprintf("Invalid field '%s.%s': %s", label, field, conditionMessage(e)), call. = FALSE)
+            }
+        )
+    }
+}
 
 # Helper function: convert a path and value into a nested list structure
 # e.g., path_to_nested_list(c("phenology", "thermal_time", "y"), c(0, 25, 0))
@@ -310,7 +518,7 @@ merge_lists <- function(x, y) {
         if (nm %in% names(x) && is.list(x[[nm]]) && is.list(y[[nm]])) {
             x[[nm]] <- merge_lists(x[[nm]], y[[nm]])
         } else {
-            x[[nm]] <- y[[nm]]
+            x[nm] <- list(y[[nm]])
         }
     }
     x

@@ -1,3 +1,7 @@
+# optree 0.2.0
+
+* Add new feature of collections for a set of similar named records.
+
 # optree 0.1.3
 
 * add a new validator function `v_character_vector` for character vectors.

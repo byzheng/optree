@@ -22,6 +22,7 @@ optree provides a flexible, mutable, hierarchical options manager for R. It allo
 - **Merge-aware updates** (update only part of a nested group)  
 - **Transactional updates** (rollback on validation failure)  
 - **Group and field validation** for consistency  
+- **Validated collections** of dynamically added, consistently structured records
 - **Reset all options** to defaults with one call  
 - **Minimal dependencies**, lightweight and easy to use  
 
@@ -159,6 +160,35 @@ canola$reset()
 # Returns all defaults
 canola$get()
 ```
+
+## Collections
+
+Use a collection when you need to add named records at runtime. Mark a group
+with `_as_collection = TRUE` in `defaults`, then define the required fields
+with `_default` validators:
+
+```r
+library(optree)
+
+sources <- create_options_manager(
+  defaults = list(items = list(
+    "_as_collection" = TRUE,
+    code = list(type = "files", enabled = TRUE)
+  )),
+  validators = list(
+    "items._default.type" = v_character_scalar(),
+    "items._default.enabled" = v_logical_scalar()
+  )
+)
+
+sources$set("items.models" = list(type = "files", enabled = FALSE))
+sources$set("items.models.enabled" = TRUE)
+sources$get("items.models")
+```
+
+All records must have exactly the declared fields. New and changed records are
+validated without revalidating unchanged records; `reset()` restores the initial
+collection. See the [Collections vignette](vignettes/collections.Rmd) for details.
 
 
 ## Advantages over existing approaches

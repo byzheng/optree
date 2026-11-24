@@ -81,7 +81,8 @@ It is ideal for managing complex, interdependent settings in R packages or proje
 <dd><p>A named list specifying the default values of the options.
 Nested lists can be used to represent hierarchical groups of related options.
 A group containing <code>"_as_collection" = TRUE</code> is a collection of named
-records. The marker is schema metadata and is not included in the options.</p></dd>
+records and predefined non-list options. The marker is schema metadata
+and is not included in the options.</p></dd>
 
 
 <dt id="arg-validators">validators<a class="anchor" aria-label="anchor" href="#arg-validators"></a></dt>
@@ -127,8 +128,11 @@ updating deeply nested options without reconstructing the entire hierarchy.</p>
 <p><strong>Transactional updates</strong>: If validation fails during a <code>set()</code> call, all
 changes are rolled back and the options remain in their previous state. This ensures
 that the options manager is always in a consistent state.</p>
-<p><strong>Collections</strong>: Each collection is a named list of records with exactly the
-fields declared by its <code>_default</code> validators. Existing records are checked
+<p><strong>Collections</strong>: A collection can contain predefined non-list options and
+named list records with exactly the fields declared by its <code>_default</code>
+validators. Non-list options may have ordinary validators and cannot be
+changed into lists. New names must be records, and records cannot be changed
+into non-list values. Existing records are checked
 when the manager is created. New records must supply every field; existing
 records may be updated partially. Only changed records are revalidated,
 although ordinary validators still run as usual. Collections cannot be nested
@@ -183,13 +187,16 @@ supported; use <code>_default</code> for record fields or validate the whole col
 <span class="r-in"><span><span class="va">sources</span> <span class="op">&lt;-</span> <span class="fu">create_options_manager</span><span class="op">(</span></span></span>
 <span class="r-in"><span>    defaults <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>items <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span></span>
 <span class="r-in"><span>        <span class="st">"_as_collection"</span> <span class="op">=</span> <span class="cn">TRUE</span>,</span></span>
+<span class="r-in"><span>        folder <span class="op">=</span> <span class="st">"collection"</span>,</span></span>
 <span class="r-in"><span>        code_base <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>type <span class="op">=</span> <span class="st">"files"</span>, enabled <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
 <span class="r-in"><span>    <span class="op">)</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>    validators <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span></span>
+<span class="r-in"><span>        <span class="st">"items.folder"</span> <span class="op">=</span> <span class="fu"><a href="v_character_scalar.html">v_character_scalar</a></span><span class="op">(</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>        <span class="st">"items._default.type"</span> <span class="op">=</span> <span class="fu"><a href="v_character_scalar.html">v_character_scalar</a></span><span class="op">(</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>        <span class="st">"items._default.enabled"</span> <span class="op">=</span> <span class="fu"><a href="v_logical_scalar.html">v_logical_scalar</a></span><span class="op">(</span><span class="op">)</span></span></span>
 <span class="r-in"><span>    <span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">sources</span><span class="op">$</span><span class="fu">set</span><span class="op">(</span><span class="st">"items.folder"</span> <span class="op">=</span> <span class="st">"new-collection"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">sources</span><span class="op">$</span><span class="fu">set</span><span class="op">(</span><span class="st">"items.crop_model"</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>type <span class="op">=</span> <span class="st">"files"</span>, enabled <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">sources</span><span class="op">$</span><span class="fu">set</span><span class="op">(</span><span class="st">"items.crop_model.enabled"</span> <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">sources</span><span class="op">$</span><span class="fu">reset</span><span class="op">(</span><span class="op">)</span></span></span>

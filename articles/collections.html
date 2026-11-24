@@ -96,7 +96,8 @@
 <code>defaults</code>. A collection is useful when the names of records
 are not all known in advance. It is a named list, not a data frame: each
 record has the same required fields and can be added or updated at
-runtime.</p>
+runtime. A collection can also contain predefined non-list options
+alongside its records.</p>
 <div class="section level3">
 <h3 id="define-a-collection">Define a collection<a class="anchor" aria-label="anchor" href="#define-a-collection"></a>
 </h3>
@@ -110,15 +111,18 @@ required record field, supply a validator at
 <span><span class="va">sources</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/create_options_manager.html">create_options_manager</a></span><span class="op">(</span></span>
 <span>  defaults <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
 <span>    collection <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>      folder <span class="op">=</span> <span class="st">"collection"</span>,</span>
 <span>      items <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
 <span>        <span class="st">"_as_collection"</span> <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>        folder <span class="op">=</span> <span class="st">"collection"</span>,</span>
+<span>        search_paths <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"models"</span>, <span class="st">"core"</span><span class="op">)</span>,</span>
 <span>        code_base <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>type <span class="op">=</span> <span class="st">"files"</span>, folder <span class="op">=</span> <span class="st">"code-base"</span>, enabled <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>,</span>
 <span>        crop_model <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>type <span class="op">=</span> <span class="st">"files"</span>, folder <span class="op">=</span> <span class="st">"crop-model"</span>, enabled <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
 <span>      <span class="op">)</span></span>
 <span>    <span class="op">)</span></span>
 <span>  <span class="op">)</span>,</span>
 <span>  validators <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>    <span class="st">"collection.items.folder"</span> <span class="op">=</span> <span class="fu"><a href="../reference/v_character_scalar.html">v_character_scalar</a></span><span class="op">(</span><span class="op">)</span>,</span>
+<span>    <span class="st">"collection.items.search_paths"</span> <span class="op">=</span> <span class="fu"><a href="../reference/v_character_vector.html">v_character_vector</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>    <span class="st">"collection.items._default.type"</span> <span class="op">=</span> <span class="fu"><a href="../reference/v_character_scalar.html">v_character_scalar</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>    <span class="st">"collection.items._default.folder"</span> <span class="op">=</span> <span class="fu"><a href="../reference/v_character_scalar.html">v_character_scalar</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>    <span class="st">"collection.items._default.enabled"</span> <span class="op">=</span> <span class="fu"><a href="../reference/v_logical_scalar.html">v_logical_scalar</a></span><span class="op">(</span><span class="op">)</span></span>
@@ -126,6 +130,12 @@ required record field, supply a validator at
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">sources</span><span class="op">$</span><span class="fu">get</span><span class="op">(</span><span class="st">"collection.items"</span><span class="op">)</span></span>
+<span><span class="co">#&gt; $folder</span></span>
+<span><span class="co">#&gt; [1] "collection"</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $search_paths</span></span>
+<span><span class="co">#&gt; [1] "models" "core"  </span></span>
+<span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; $code_base</span></span>
 <span><span class="co">#&gt; $code_base$type</span></span>
 <span><span class="co">#&gt; [1] "files"</span></span>
@@ -147,8 +157,22 @@ required record field, supply a validator at
 <span><span class="co">#&gt; $crop_model$enabled</span></span>
 <span><span class="co">#&gt; [1] FALSE</span></span></code></pre></div>
 <p>The marker is schema metadata, not an item or an option returned by
-<code><a href="https://rdrr.io/r/base/get.html" class="external-link">get()</a></code>. Here <code>collection.folder</code> is an ordinary
-option; the records are under <code>collection.items</code>.</p>
+<code><a href="https://rdrr.io/r/base/get.html" class="external-link">get()</a></code>. Here <code>folder</code> and
+<code>search_paths</code> are ordinary options within
+<code>collection.items</code>; the list-valued entries are records.
+Ordinary options can have their own validators using their full
+paths.</p>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">sources</span><span class="op">$</span><span class="fu">set</span><span class="op">(</span><span class="st">"collection.items.folder"</span> <span class="op">=</span> <span class="st">"new-folder"</span><span class="op">)</span></span>
+<span><span class="va">sources</span><span class="op">$</span><span class="fu">set</span><span class="op">(</span><span class="st">"collection.items.search_paths"</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"models"</span>, <span class="st">"resources"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">sources</span><span class="op">$</span><span class="fu">get</span><span class="op">(</span><span class="st">"collection.items.folder"</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] "new-folder"</span></span></code></pre></div>
+<p>Non-list options must be defined in <code>defaults</code>; a new name
+must be a record. An ordinary option cannot be changed into a list, and
+a record cannot be changed into a non-list value. A data frame is an R
+list, so it cannot be used as an ordinary collection option. As with
+other ordinary options, validators are optional; without one, an option
+can be changed to another non-list value of a different type.</p>
 <p>The <code>_default</code> validators define the record schema, not
 default values for missing fields. Each record must be a named list with
 <strong>exactly</strong> the declared fields. Every field is required
@@ -157,7 +181,7 @@ field value; use a suitable validator for scalar, vector, or structured
 values.</p>
 <p>Initial records are validated when the manager is created. To start
 with no records, supply the marker alone:</p>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">empty_sources</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/create_options_manager.html">create_options_manager</a></span><span class="op">(</span></span>
 <span>  defaults <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>items <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="st">"_as_collection"</span> <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span>,</span>
 <span>  validators <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
@@ -172,7 +196,7 @@ with no records, supply the marker alone:</p>
 <h3 id="add-and-update-records">Add and update records<a class="anchor" aria-label="anchor" href="#add-and-update-records"></a>
 </h3>
 <p>Add a record using a new name and supply every declared field:</p>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">sources</span><span class="op">$</span><span class="fu">set</span><span class="op">(</span><span class="st">"collection.items.history"</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
 <span>  type <span class="op">=</span> <span class="st">"commit-history"</span>,</span>
 <span>  folder <span class="op">=</span> <span class="st">"commit-history"</span>,</span>
@@ -190,7 +214,7 @@ with no records, supply the marker alone:</p>
 <p>Update an existing record with only the fields that need to change.
 You can use dot-separated paths or nested lists, as with ordinary
 options:</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">sources</span><span class="op">$</span><span class="fu">set</span><span class="op">(</span><span class="st">"collection.items.history.enabled"</span> <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span><span class="va">sources</span><span class="op">$</span><span class="fu">set</span><span class="op">(</span>collection <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>items <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
 <span>  history <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>folder <span class="op">=</span> <span class="st">"history"</span><span class="op">)</span></span>
@@ -208,7 +232,7 @@ options:</p>
 merged before that record is validated. The complete changed record is
 checked, but unchanged records are not revalidated by the
 <code>_default</code> field validators.</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">sources</span><span class="op">$</span><span class="fu">set</span><span class="op">(</span></span>
 <span>  <span class="st">"collection.items.history.type"</span> <span class="op">=</span> <span class="st">"history"</span>,</span>
 <span>  <span class="st">"collection.items.history.enabled"</span> <span class="op">=</span> <span class="cn">FALSE</span></span>
@@ -219,21 +243,21 @@ checked, but unchanged records are not revalidated by the
 </h3>
 <p>An incomplete record, an unknown field, or a value rejected by its
 validator causes an error. For example:</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">sources</span><span class="op">$</span><span class="fu">set</span><span class="op">(</span><span class="st">"collection.items.new_source"</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>type <span class="op">=</span> <span class="st">"files"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; <span style="color: #BBBB00; font-weight: bold;">Error</span><span style="font-weight: bold;">:</span></span></span>
 <span><span class="co">#&gt; <span style="color: #BBBB00;">!</span> Missing field(s) for 'collection.items.new_source': folder, enabled</span></span></code></pre></div>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">sources</span><span class="op">$</span><span class="fu">set</span><span class="op">(</span><span class="st">"collection.items.history.enabled"</span> <span class="op">=</span> <span class="st">"yes"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; <span style="color: #BBBB00; font-weight: bold;">Error</span><span style="font-weight: bold;">:</span></span></span>
 <span><span class="co">#&gt; <span style="color: #BBBB00;">!</span> Invalid field 'collection.items.history.enabled': must be a single logical value</span></span></code></pre></div>
 <p>An unsuccessful <code>set()</code> leaves all options unchanged,
 including when a call tries to update multiple options:</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">before</span> <span class="op">&lt;-</span> <span class="va">sources</span><span class="op">$</span><span class="fu">get</span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">tryCatch</a></span><span class="op">(</span></span>
 <span>  <span class="va">sources</span><span class="op">$</span><span class="fu">set</span><span class="op">(</span></span>
-<span>    <span class="st">"collection.folder"</span> <span class="op">=</span> <span class="st">"new-folder"</span>,</span>
+<span>    <span class="st">"collection.items.folder"</span> <span class="op">=</span> <span class="st">"another-folder"</span>,</span>
 <span>    <span class="st">"collection.items.history.extra"</span> <span class="op">=</span> <span class="fl">1</span></span>
 <span>  <span class="op">)</span>,</span>
 <span>  error <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">e</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/message.html" class="external-link">message</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">conditionMessage</a></span><span class="op">(</span><span class="va">e</span><span class="op">)</span><span class="op">)</span></span>
@@ -248,10 +272,10 @@ including when a call tries to update multiple options:</p>
 <p>Use an ordinary validator on the collection path for rules involving
 the collection as a whole. It receives the complete collection, and,
 like other ordinary validators, runs after every <code>set()</code>
-call. Such a validator can inspect all records, even though
-<code>_default</code> validators only check changed records. Ordinary
-validators are not run when the manager is created.</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+call. Such a validator can inspect all records and ordinary options,
+even though <code>_default</code> validators only check changed records.
+Ordinary validators are not run when the manager is created.</p>
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">limited</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/create_options_manager.html">create_options_manager</a></span><span class="op">(</span></span>
 <span>  defaults <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>items <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
 <span>    <span class="st">"_as_collection"</span> <span class="op">=</span> <span class="cn">TRUE</span>,</span>
@@ -270,8 +294,8 @@ validators are not run when the manager is created.</p>
 <h3 id="names-nesting-and-reset">Names, nesting, and reset<a class="anchor" aria-label="anchor" href="#names-nesting-and-reset"></a>
 </h3>
 <ul>
-<li>Record names must be non-empty, unique, and must not contain
-dots.</li>
+<li>Names of records and ordinary options must be non-empty, unique, and
+must not contain dots. They share the same namespace.</li>
 <li>
 <code>_default</code> and <code>_as_collection</code> are reserved
 names within collections.</li>
@@ -285,11 +309,14 @@ supported.</li>
 field validator.</li>
 </ul>
 <p><code>reset()</code> restores the original defaults, including the
-original records and their values. Records added later are removed:</p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+original records and ordinary options and their values. Records added
+later are removed:</p>
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">sources</span><span class="op">$</span><span class="fu">reset</span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">sources</span><span class="op">$</span><span class="fu">get</span><span class="op">(</span><span class="st">"collection.items"</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "code_base"  "crop_model"</span></span>
+<span><span class="co">#&gt; [1] "folder"       "search_paths" "code_base"    "crop_model"</span></span>
+<span><span class="va">sources</span><span class="op">$</span><span class="fu">get</span><span class="op">(</span><span class="st">"collection.items.folder"</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] "collection"</span></span>
 <span><span class="va">sources</span><span class="op">$</span><span class="fu">get</span><span class="op">(</span><span class="st">"collection.items.crop_model.enabled"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] FALSE</span></span></code></pre></div>
 </div>

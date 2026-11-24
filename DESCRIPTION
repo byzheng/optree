@@ -10,7 +10,7 @@ Description: Provides tools for managing nested, multi-level configuration syste
     like XY pairs and collections. Options can be dynamically modified at runtime while maintaining type
     safety through validator functions, and easily reset to their default values when needed.
 License: MIT + file LICENSE
-Encoding: UTF-8 
+Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 Depends: R (>= 4.1.0)
 Suggests: 

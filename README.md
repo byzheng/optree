@@ -173,33 +173,37 @@ library(optree)
 sources <- create_options_manager(
   defaults = list(items = list(
     "_as_collection" = TRUE,
+    folder = "collection",
     code = list(type = "files", enabled = TRUE)
   )),
   validators = list(
+    "items.folder" = v_character_scalar(),
     "items._default.type" = v_character_scalar(),
     "items._default.enabled" = v_logical_scalar()
   )
 )
 
+sources$set("items.folder" = "new-collection")
 sources$set("items.models" = list(type = "files", enabled = FALSE))
 sources$set("items.models.enabled" = TRUE)
 sources$get("items.models")
 ```
 
-All records must have exactly the declared fields. New and changed records are
-validated without revalidating unchanged records; `reset()` restores the initial
-collection. See the [Collections vignette](vignettes/collections.Rmd) for details.
+Predefined non-list values, such as `folder`, are ordinary options. All records
+must have exactly the declared fields. New and changed records are validated
+without revalidating unchanged records; `reset()` restores the initial collection.
+See the [Collections vignette](vignettes/collections.Rmd) for details.
 
 
 ## Advantages over existing approaches
 
-| Feature | optree | settings::options_manager | base R options() |
-|---------|--------|---------------------------|------------------|
-| Hierarchical options | ✅ | Limited | ❌ |
-| Merge-aware updates | ✅ | ❌ | ❌ |
-| Runtime mutable | ✅ | ✅ | ✅ |
-| Group validation | ✅ | Custom only | ❌ |
-| Arbitrary depth | ✅ | Limited | ❌ |
+| Feature | optree | settings | base R |
+| Store nested lists | ✅ Named lists | ✅ | ✅ |
+| Nested-path get/set | ✅ | ❌ | ❌ |
+| Partial nested updates | ✅ | Manual | Manual |
+| Custom group validation | ✅ | ✅ | Manual |
+| Dynamic validated collections | ✅ Built-in | Manual | Manual |
+
 
 ## Built-in Validators
 

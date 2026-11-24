@@ -19,7 +19,8 @@ knitr::opts_chunk$set(
 Ordinary option groups have fixed keys defined in `defaults`. A collection is
 useful when the names of records are not all known in advance. It is a named
 list, not a data frame: each record has the same required fields and can be
-added or updated at runtime.
+added or updated at runtime. A collection can also contain predefined non-list
+options alongside its records.
 
 ## Define a collection
 
@@ -33,15 +34,18 @@ library(optree)
 sources <- create_options_manager(
   defaults = list(
     collection = list(
-      folder = "collection",
       items = list(
         "_as_collection" = TRUE,
+        folder = "collection",
+        search_paths = c("models", "core"),
         code_base = list(type = "files", folder = "code-base", enabled = TRUE),
         crop_model = list(type = "files", folder = "crop-model", enabled = FALSE)
       )
     )
   ),
   validators = list(
+    "collection.items.folder" = v_character_scalar(),
+    "collection.items.search_paths" = v_character_vector(),
     "collection.items._default.type" = v_character_scalar(),
     "collection.items._default.folder" = v_character_scalar(),
     "collection.items._default.enabled" = v_logical_scalar()
@@ -52,8 +56,22 @@ sources$get("collection.items")
 ```
 
 The marker is schema metadata, not an item or an option returned by `get()`.
-Here `collection.folder` is an ordinary option; the records are under
-`collection.items`.
+Here `folder` and `search_paths` are ordinary options within `collection.items`;
+the list-valued entries are records. Ordinary options can have their own
+validators using their full paths.
+
+```{r}
+sources$set("collection.items.folder" = "new-folder")
+sources$set("collection.items.search_paths" = c("models", "resources"))
+sources$get("collection.items.folder")
+```
+
+Non-list options must be defined in `defaults`; a new name must be a record.
+An ordinary option cannot be changed into a list, and a record cannot be
+changed into a non-list value. A data frame is an R list, so it cannot be used
+as an ordinary collection option. As with other ordinary options, validators
+are optional; without one, an option can be changed to another non-list value
+of a different type.
 
 The `_default` validators define the record schema, not default values for
 missing fields. Each record must be a named list with **exactly** the declared
@@ -130,7 +148,7 @@ tries to update multiple options:
 before <- sources$get()
 tryCatch(
   sources$set(
-    "collection.folder" = "new-folder",
+    "collection.items.folder" = "another-folder",
     "collection.items.history.extra" = 1
   ),
   error = function(e) message(conditionMessage(e))
@@ -143,7 +161,8 @@ identical(sources$get(), before)
 Use an ordinary validator on the collection path for rules involving the
 collection as a whole. It receives the complete collection, and, like other
 ordinary validators, runs after every `set()` call. Such a validator can inspect
-all records, even though `_default` validators only check changed records.
+all records and ordinary options, even though `_default` validators only check
+changed records.
 Ordinary validators are not run when the manager is created.
 
 ```{r}
@@ -164,7 +183,8 @@ limited$set("items.second" = list(type = "files"))
 
 ## Names, nesting, and reset
 
-- Record names must be non-empty, unique, and must not contain dots.
+- Names of records and ordinary options must be non-empty, unique, and must not
+  contain dots. They share the same namespace.
 - `_default` and `_as_collection` are reserved names within collections.
 - A collection may appear at an ordinary option path, including the root, but
   collections cannot be nested inside collection records.
@@ -173,10 +193,11 @@ limited$set("items.second" = list(type = "files"))
 - Each collection must declare at least one `_default` field validator.
 
 `reset()` restores the original defaults, including the original records and
-their values. Records added later are removed:
+ordinary options and their values. Records added later are removed:
 
 ```{r}
 sources$reset()
 names(sources$get("collection.items"))
+sources$get("collection.items.folder")
 sources$get("collection.items.crop_model.enabled")
 ```

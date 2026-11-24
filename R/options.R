@@ -7,7 +7,8 @@
 #' @param defaults A named list specifying the default values of the options.
 #'   Nested lists can be used to represent hierarchical groups of related options.
 #'   A group containing `"_as_collection" = TRUE` is a collection of named
-#'   records. The marker is schema metadata and is not included in the options.
+#'   records and predefined non-list options. The marker is schema metadata
+#'   and is not included in the options.
 #' @param validators An optional named list of functions used to validate options.
 #'   Each function should take a single argument (the value being set) and
 #'   throw an error if the value is invalid. Names correspond to option paths,
@@ -46,8 +47,11 @@
 #' changes are rolled back and the options remain in their previous state. This ensures
 #' that the options manager is always in a consistent state.
 #'
-#' **Collections**: Each collection is a named list of records with exactly the
-#' fields declared by its `_default` validators. Existing records are checked
+#' **Collections**: A collection can contain predefined non-list options and
+#' named list records with exactly the fields declared by its `_default`
+#' validators. Non-list options may have ordinary validators and cannot be
+#' changed into lists. New names must be records, and records cannot be changed
+#' into non-list values. Existing records are checked
 #' when the manager is created. New records must supply every field; existing
 #' records may be updated partially. Only changed records are revalidated,
 #' although ordinary validators still run as usual. Collections cannot be nested
@@ -99,13 +103,16 @@
 #' sources <- create_options_manager(
 #'     defaults = list(items = list(
 #'         "_as_collection" = TRUE,
+#'         folder = "collection",
 #'         code_base = list(type = "files", enabled = TRUE)
 #'     )),
 #'     validators = list(
+#'         "items.folder" = v_character_scalar(),
 #'         "items._default.type" = v_character_scalar(),
 #'         "items._default.enabled" = v_logical_scalar()
 #'     )
 #' )
+#' sources$set("items.folder" = "new-collection")
 #' sources$set("items.crop_model" = list(type = "files", enabled = FALSE))
 #' sources$set("items.crop_model.enabled" = TRUE)
 #' sources$reset()
@@ -143,7 +150,7 @@ create_options_manager <- function(defaults, validators = list()) {
 
     extracted <- extract_collections(defaults)
     defaults <- extracted$defaults
-    collections <- collection_schemas(extracted$paths, validators)
+    collections <- collection_schemas(extracted$paths, validators, defaults)
     record_validators <- names(validators)[vapply(
         names(validators), is_collection_field_validator, logical(1), paths = extracted$paths
     )]
@@ -154,7 +161,9 @@ create_options_manager <- function(defaults, validators = list()) {
         items <- get_collection_at_path(defaults, path)
         validate_collection_names(items, path)
         for (name in names(items)) {
-            validate_collection_record(items[[name]], collections[[collection_key(path)]], c(path, name))
+            if (is.list(items[[name]])) {
+                validate_collection_record(items[[name]], collections[[collection_key(path)]], c(path, name))
+            }
         }
     }
 
@@ -239,6 +248,10 @@ create_options_manager <- function(defaults, validators = list()) {
             for (nm in names(args)) {
                 if (is.null(args[[nm]]) && !grepl("\\.", nm) &&
                     collection_key(character()) %in% names(collections)) {
+                    if (nm %in% names(defaults) && !is.list(defaults[[nm]])) {
+                        processed_args[nm] <- list(NULL)
+                        next
+                    }
                     stop(sprintf("Record '%s' must be a named list", nm), call. = FALSE)
                 }
                 if (is.null(args[[nm]]) && !grepl("\\.", nm) &&
@@ -305,6 +318,13 @@ validate_and_merge <- function(current, update, defaults, path, collections = li
         for (name in names(update)) {
             record_path <- c(path, name)
             changes <- update[[name]]
+            if (name %in% names(defaults) && !is.list(defaults[[name]])) {
+                if (is.list(changes)) {
+                    stop(sprintf("Option '%s' cannot be a list", paste(record_path, collapse = ".")), call. = FALSE)
+                }
+                current[name] <- list(changes)
+                next
+            }
             if (!is.list(changes) || is.data.frame(changes) ||
                 is.null(names(changes)) || any(names(changes) == "") ||
                 anyDuplicated(names(changes))) {
@@ -402,7 +422,7 @@ is_collection_field_validator <- function(name, paths) {
     }, logical(1)))
 }
 
-collection_schemas <- function(paths, validators) {
+collection_schemas <- function(paths, validators, defaults) {
     schemas <- list()
     for (path in paths) {
         schemas[collection_key(path)] <- list(list())
@@ -413,7 +433,12 @@ collection_schemas <- function(paths, validators) {
             for (path in paths) {
                 if (length(keys) > length(path) &&
                     identical(keys[seq_along(path)], path)) {
-                    stop(sprintf("Validator '%s' must use _default for collection record fields", name), call. = FALSE)
+                    items <- get_collection_at_path(defaults, path)
+                    child <- keys[length(path) + 1L]
+                    if (length(keys) != length(path) + 1L ||
+                        !child %in% names(items) || is.list(items[[child]])) {
+                        stop(sprintf("Validator '%s' must use _default for collection record fields", name), call. = FALSE)
+                    }
                 }
             }
             next

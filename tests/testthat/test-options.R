@@ -347,6 +347,76 @@ test_that("collection validation checks only changed records", {
     expect_equal(counter$count, 3L)
 })
 
+test_that("collections can contain predefined non-list options", {
+    count <- new.env()
+    count$value <- 0L
+    manager <- create_options_manager(
+        list(items = list(
+            "_as_collection" = TRUE,
+            folder1 = "folder1",
+            folder2 = c("folder2", "folder22"),
+            code = list(type = "files")
+        )),
+        list(
+            "items.folder1" = v_character_scalar(),
+            "items.folder2" = v_character_vector(),
+            "items._default.type" = function(value) {
+                count$value <- count$value + 1L
+                v_character_scalar()(value)
+            }
+        )
+    )
+    expect_equal(count$value, 1L)
+    manager$set("items.folder1" = "new-folder", "items.folder2" = c("a", "b"))
+    expect_equal(count$value, 1L)
+    expect_equal(manager$get("items.folder1"), "new-folder")
+    expect_equal(manager$get("items.folder2"), c("a", "b"))
+    manager$set("items.new" = list(type = "history"), "items.folder1" = "other")
+    expect_equal(count$value, 2L)
+    expect_equal(manager$get("items.new.type"), "history")
+    manager$reset()
+    expect_equal(manager$get("items.folder1"), "folder1")
+    expect_error(manager$get("items.new"), "not defined")
+})
+
+test_that("collection options and records keep their roles and updates are atomic", {
+    manager <- create_options_manager(
+        list(items = list("_as_collection" = TRUE, folder = "initial", code = list(type = "files"))),
+        list("items.folder" = v_character_scalar(), "items._default.type" = v_character_scalar())
+    )
+    before <- manager$get()
+    expect_error(manager$set("items.folder" = list(type = "files")), "cannot be a list")
+    expect_error(manager$set("items.folder.type" = "files"), "cannot be a list")
+    expect_error(manager$set("items.code" = "not a record"), "must be a named list")
+    expect_error(manager$set("items.new" = "not a record"), "must be a named list")
+    expect_error(manager$set("items.folder" = c("a", "b")), "single character")
+    expect_error(manager$set("items.folder" = "changed", "items.new" = list(wrong = TRUE)))
+    expect_equal(manager$get(), before)
+    expect_error(
+        create_options_manager(
+            list(items = list("_as_collection" = TRUE, code = list(type = "files"))),
+            list("items._default.type" = v_character_scalar(), "items.code.type" = v_character_scalar())
+        ),
+        "must use _default"
+    )
+})
+
+test_that("root collection options can hold NULL", {
+    manager <- create_options_manager(
+        list("_as_collection" = TRUE, folder = "initial", optional = NULL, code = list(type = "files")),
+        list(folder = v_character_scalar(), "_default.type" = v_character_scalar())
+    )
+    manager$set(folder = "updated")
+    expect_equal(manager$get("folder"), "updated")
+    expect_error(manager$set(folder = 1), "single character")
+    manager$set(optional = "value")
+    expect_equal(manager$get("optional"), "value")
+    manager$set(optional = NULL)
+    expect_null(manager$get("optional"))
+    expect_true("optional" %in% names(manager$get()))
+    expect_error(manager$set(code = NULL), "must be a named list")
+})
+
 test_that("collection records reject missing, unknown, and invalid fields atomically", {
     manager <- collection_manager()
     before <- manager$get()

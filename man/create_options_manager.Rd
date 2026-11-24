@@ -10,7 +10,8 @@ create_options_manager(defaults, validators = list())
 \item{defaults}{A named list specifying the default values of the options.
 Nested lists can be used to represent hierarchical groups of related options.
 A group containing \code{"_as_collection" = TRUE} is a collection of named
-records. The marker is schema metadata and is not included in the options.}
+records and predefined non-list options. The marker is schema metadata
+and is not included in the options.}
 
 \item{validators}{An optional named list of functions used to validate options.
 Each function should take a single argument (the value being set) and
@@ -56,8 +57,11 @@ updating deeply nested options without reconstructing the entire hierarchy.
 changes are rolled back and the options remain in their previous state. This ensures
 that the options manager is always in a consistent state.
 
-\strong{Collections}: Each collection is a named list of records with exactly the
-fields declared by its \verb{_default} validators. Existing records are checked
+\strong{Collections}: A collection can contain predefined non-list options and
+named list records with exactly the fields declared by its \verb{_default}
+validators. Non-list options may have ordinary validators and cannot be
+changed into lists. New names must be records, and records cannot be changed
+into non-list values. Existing records are checked
 when the manager is created. New records must supply every field; existing
 records may be updated partially. Only changed records are revalidated,
 although ordinary validators still run as usual. Collections cannot be nested
@@ -109,13 +113,16 @@ canola$reset()
 sources <- create_options_manager(
     defaults = list(items = list(
         "_as_collection" = TRUE,
+        folder = "collection",
         code_base = list(type = "files", enabled = TRUE)
     )),
     validators = list(
+        "items.folder" = v_character_scalar(),
         "items._default.type" = v_character_scalar(),
         "items._default.enabled" = v_logical_scalar()
     )
 )
+sources$set("items.folder" = "new-collection")
 sources$set("items.crop_model" = list(type = "files", enabled = FALSE))
 sources$set("items.crop_model.enabled" = TRUE)
 sources$reset()

@@ -11,7 +11,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/v4-shims.min.css" integrity="sha256-wZjR52fzng1pJHwx4aV2AO3yyTOXrcDW7jBpJtTwVxw=" crossorigin="anonymous">
 <!-- clipboard.js --><script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.6/clipboard.min.js" integrity="sha256-inc5kl9MA1hkeYUt+EC3BhlIgyp/2jDIyBLS6k3UxPI=" crossorigin="anonymous"></script><!-- headroom.js --><script src="https://cdnjs.cloudflare.com/ajax/libs/headroom/0.11.0/headroom.min.js" integrity="sha256-AsUX4SJE1+yuDu5+mAVzJbuYNPHj/WroHuZ8Ir/CkE0=" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/headroom/0.11.0/jQuery.headroom.min.js" integrity="sha256-ZX/yNShbjqsohH1k95liqY9Gd8uOiE1S4vZc+9KQ1K4=" crossorigin="anonymous"></script><!-- pkgdown --><link href="pkgdown.css" rel="stylesheet">
 <script src="pkgdown.js"></script><meta property="og:title" content="Hierarchical Runtime Configuration Management">
-<meta property="og:description" content="Provides tools for managing nested, multi-level configuration systems with runtime mutability, type validation, and default value management. Supports creating hierarchical options managers with customizable validators for scalar and vector types (numeric, character, logical), enumerated values, bounded ranges, and complex structures like XY pairs and collections. Options can be dynamically modified at runtime while maintaining type safety through validator functions, and easily reset to their default values when needed.">
+<meta property="og:description" content="Provides tools for managing nested, multi-level configuration systems with runtime mutability, type validation, and default value management. Supports creating hierarchical options managers with customizable validators for scalar and vector types (numeric, character, logical), enumerated values, bounded ranges, and complex structures like XY pairs and collections. Options can be dynamically modified at runtime while maintaining type safety through path-specific and whole-options validator functions, and easily reset to their default values when needed.">
 <!-- mathjax --><script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js" integrity="sha256-nvJJv9wWKEm88qvoQl9ekL2J+k/RWIsaSScxxlsrv8k=" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/config/TeX-AMS-MML_HTMLorMML.js" integrity="sha256-84DKXVJXs0/F8OTMzX4UR909+jtl4G7SPypPavF+GfA=" crossorigin="anonymous"></script><!--[if lt IE 9]>
 <script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>
 <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
@@ -32,7 +32,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="index.html">optree</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.2.0</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.2.1</span>
       </span>
     </div>
 
@@ -108,8 +108,7 @@
 <strong>Transactional updates</strong> (rollback on validation failure)<br>
 </li>
 <li>
-<strong>Group and field validation</strong> for consistency<br>
-</li>
+<strong>Field, group, and whole-options validation</strong> for consistency</li>
 <li>
 <strong>Validated collections</strong> of dynamically added, consistently structured records</li>
 <li>
@@ -248,10 +247,38 @@
 <span><span class="va">canola</span><span class="op">$</span><span class="fu">get</span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
+<h2 id="whole-options-validation">Whole-options validation<a class="anchor" aria-label="anchor" href="#whole-options-validation"></a>
+</h2>
+<p>Use <code>options_validator</code> for rules involving different option paths. It takes the complete options list and calls <code><a href="https://rdrr.io/r/base/stop.html" class="external-link">stop()</a></code> when the values are invalid:</p>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">paired</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/create_options_manager.html">create_options_manager</a></span><span class="op">(</span></span>
+<span>  defaults <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>    thermaltime <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>x <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">2</span>, <span class="fl">30</span>, <span class="fl">35</span><span class="op">)</span>, y <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">28</span>, <span class="fl">0</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>    thermaltime2 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>x <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">2</span>, <span class="fl">30</span>, <span class="fl">35</span><span class="op">)</span>, y <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">28</span>, <span class="fl">0</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="op">)</span>,</span>
+<span>  validators <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>    thermaltime <span class="op">=</span> <span class="fu"><a href="reference/v_xypair.html">v_xypair</a></span><span class="op">(</span><span class="op">)</span>,</span>
+<span>    thermaltime2 <span class="op">=</span> <span class="fu"><a href="reference/v_xypair.html">v_xypair</a></span><span class="op">(</span><span class="op">)</span></span>
+<span>  <span class="op">)</span>,</span>
+<span>  options_validator <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">options</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span><span class="va">options</span><span class="op">$</span><span class="va">thermaltime</span><span class="op">$</span><span class="va">x</span>, <span class="va">options</span><span class="op">$</span><span class="va">thermaltime2</span><span class="op">$</span><span class="va">x</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
+<span>      <span class="kw"><a href="https://rdrr.io/r/base/stop.html" class="external-link">stop</a></span><span class="op">(</span><span class="st">"thermaltime x values must match"</span><span class="op">)</span></span>
+<span>    <span class="op">}</span></span>
+<span>  <span class="op">}</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Update both values together so the merged options remain valid</span></span>
+<span><span class="va">paired</span><span class="op">$</span><span class="fu">set</span><span class="op">(</span></span>
+<span>  <span class="st">"thermaltime.x"</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">5</span>, <span class="fl">25</span>, <span class="fl">40</span><span class="op">)</span>,</span>
+<span>  <span class="st">"thermaltime2.x"</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">5</span>, <span class="fl">25</span>, <span class="fl">40</span><span class="op">)</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p>The whole-options validator runs on defaults at creation and on the complete merged candidate after individual validators on every <code>set()</code>. A failed validation leaves all options unchanged. It is optional and skipped when <code>NULL</code>; <code>reset()</code> restores the validated defaults without rerunning it. Ordinary path validators run on updates, not on defaults at creation. See the <a href="vignettes/validators.Rmd">Validators vignette</a> for more examples.</p>
+</div>
+<div class="section level2">
 <h2 id="collections">Collections<a class="anchor" aria-label="anchor" href="#collections"></a>
 </h2>
 <p>Use a collection when you need to add named records at runtime. Mark a group with <code>_as_collection = TRUE</code> in <code>defaults</code>, then define the required fields with <code>_default</code> validators:</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://optree.bangyou.me/" class="external-link">optree</a></span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">sources</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/create_options_manager.html">create_options_manager</a></span><span class="op">(</span></span>

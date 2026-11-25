@@ -31,7 +31,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">optree</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.2.0</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.2.1</span>
       </span>
     </div>
 
@@ -386,11 +386,61 @@ invalid</p>
 <span><span class="va">my_config</span><span class="op">$</span><span class="fu">set</span><span class="op">(</span>step_size <span class="op">=</span> <span class="fl">7</span><span class="op">)</span>   <span class="co"># ✗ Error: must be a multiple of 5</span></span></code></pre></div>
 </div>
 <div class="section level3">
+<h3 id="whole-options-validation">Whole-options validation<a class="anchor" aria-label="anchor" href="#whole-options-validation"></a>
+</h3>
+<p>Path-specific validators receive only the value at their path. To
+enforce a relationship across paths, pass a function as
+<code>options_validator</code>. It receives the complete options list
+and should call <code><a href="https://rdrr.io/r/base/stop.html" class="external-link">stop()</a></code> if the options are invalid:</p>
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://optree.bangyou.me/" class="external-link">optree</a></span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">paired</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/create_options_manager.html">create_options_manager</a></span><span class="op">(</span></span>
+<span>  defaults <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>    thermaltime <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>x <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">2</span>, <span class="fl">30</span>, <span class="fl">35</span><span class="op">)</span>, y <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">28</span>, <span class="fl">0</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>    thermaltime2 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>x <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">2</span>, <span class="fl">30</span>, <span class="fl">35</span><span class="op">)</span>, y <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">28</span>, <span class="fl">0</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="op">)</span>,</span>
+<span>  validators <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>    thermaltime <span class="op">=</span> <span class="fu"><a href="../reference/v_xypair.html">v_xypair</a></span><span class="op">(</span><span class="op">)</span>,</span>
+<span>    thermaltime2 <span class="op">=</span> <span class="fu"><a href="../reference/v_xypair.html">v_xypair</a></span><span class="op">(</span><span class="op">)</span></span>
+<span>  <span class="op">)</span>,</span>
+<span>  options_validator <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">options</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span><span class="va">options</span><span class="op">$</span><span class="va">thermaltime</span><span class="op">$</span><span class="va">x</span>, <span class="va">options</span><span class="op">$</span><span class="va">thermaltime2</span><span class="op">$</span><span class="va">x</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
+<span>      <span class="kw"><a href="https://rdrr.io/r/base/stop.html" class="external-link">stop</a></span><span class="op">(</span><span class="st">"thermaltime x values must match"</span><span class="op">)</span></span>
+<span>    <span class="op">}</span></span>
+<span>  <span class="op">}</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Both values can be updated in one transaction</span></span>
+<span><span class="va">paired</span><span class="op">$</span><span class="fu">set</span><span class="op">(</span></span>
+<span>  <span class="st">"thermaltime.x"</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">5</span>, <span class="fl">25</span>, <span class="fl">40</span><span class="op">)</span>,</span>
+<span>  <span class="st">"thermaltime2.x"</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">5</span>, <span class="fl">25</span>, <span class="fl">40</span><span class="op">)</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p>An update to only one <code>x</code> fails, leaving the previous
+options unchanged:</p>
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">before</span> <span class="op">&lt;-</span> <span class="va">paired</span><span class="op">$</span><span class="fu">get</span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">tryCatch</a></span><span class="op">(</span></span>
+<span>  <span class="va">paired</span><span class="op">$</span><span class="fu">set</span><span class="op">(</span><span class="st">"thermaltime.x"</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">10</span>, <span class="fl">20</span>, <span class="fl">30</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  error <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">e</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/message.html" class="external-link">message</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">conditionMessage</a></span><span class="op">(</span><span class="va">e</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="co">#&gt; thermaltime x values must match</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span><span class="va">paired</span><span class="op">$</span><span class="fu">get</span><span class="op">(</span><span class="op">)</span>, <span class="va">before</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
+<p><code>options_validator</code> defaults to <code>NULL</code>, which
+skips whole-options validation. Otherwise, it must be a function. It
+runs on defaults when the manager is created, and on the complete merged
+candidate after individual validators on every <code>set()</code>.
+Ordinary path validators run on updates, not on defaults at creation.
+<code>reset()</code> restores the defaults without rerunning
+validators.</p>
+</div>
+<div class="section level3">
 <h3 id="combining-multiple-validators">Combining Multiple Validators<a class="anchor" aria-label="anchor" href="#combining-multiple-validators"></a>
 </h3>
 <p>You can create higher-level validators by combining simpler ones and
 custom logic:</p>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Validator factory: numeric value that must be a multiple of a given number</span></span>
 <span><span class="va">v_multiple_of</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">divisor</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="op">{</span></span>
@@ -413,7 +463,7 @@ custom logic:</p>
 </h3>
 <p>When validation fails, optree automatically rolls back any changes.
 This ensures your options manager never enters an invalid state:</p>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">config</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/create_options_manager.html">create_options_manager</a></span><span class="op">(</span></span>
 <span>  defaults <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
 <span>    x <span class="op">=</span> <span class="fl">1</span>,</span>

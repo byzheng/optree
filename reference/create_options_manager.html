@@ -19,7 +19,7 @@ It is ideal for managing complex, interdependent settings in R packages or proje
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">optree</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.2.0</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.2.1</span>
       </span>
     </div>
 
@@ -70,7 +70,7 @@ It is ideal for managing complex, interdependent settings in R packages or proje
     </div>
 
     <div id="ref-usage">
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">create_options_manager</span><span class="op">(</span><span class="va">defaults</span>, validators <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">create_options_manager</span><span class="op">(</span><span class="va">defaults</span>, validators <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span>, options_validator <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div id="arguments">
@@ -92,6 +92,13 @@ throw an error if the value is invalid. Names correspond to option paths,
 e.g., <code>"thermaltime"</code> for a top-level group. For a collection, define
 each required record field using <code>"&lt;collection path&gt;._default.&lt;field&gt;"</code>.
 Each field validator receives the complete field value.</p></dd>
+
+
+<dt id="arg-options-validator">options_validator<a class="anchor" aria-label="anchor" href="#arg-options-validator"></a></dt>
+<dd><p>An optional function taking the complete options
+list and throwing an error if it is invalid. It is called on the defaults
+at creation and on the merged candidate after individual validators during
+each <code>set()</code> call. If <code>NULL</code>, whole-options validation is skipped.</p></dd>
 
 </dl></div>
     <div id="value">
@@ -127,7 +134,10 @@ converted to nested lists internally. This provides a more concise syntax for
 updating deeply nested options without reconstructing the entire hierarchy.</p>
 <p><strong>Transactional updates</strong>: If validation fails during a <code>set()</code> call, all
 changes are rolled back and the options remain in their previous state. This ensures
-that the options manager is always in a consistent state.</p>
+that the options manager is always in a consistent state.
+The whole-options validator can enforce relationships between different option
+paths. Ordinary path validators run on updates, not on defaults at creation.
+<code>reset()</code> restores the defaults without rerunning validators.</p>
 <p><strong>Collections</strong>: A collection can contain predefined non-list options and
 named list records with exactly the fields declared by its <code>_default</code>
 validators. Non-list options may have ordinary validators and cannot be
@@ -183,6 +193,21 @@ supported; use <code>_default</code> for record fields or validate the whole col
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Reset to defaults</span></span></span>
 <span class="r-in"><span><span class="va">canola</span><span class="op">$</span><span class="fu">reset</span><span class="op">(</span><span class="op">)</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># Validate a relationship across different options</span></span></span>
+<span class="r-in"><span><span class="va">paired</span> <span class="op">&lt;-</span> <span class="fu">create_options_manager</span><span class="op">(</span></span></span>
+<span class="r-in"><span>    defaults <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span></span>
+<span class="r-in"><span>        thermaltime <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>x <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">2</span>, <span class="fl">30</span>, <span class="fl">35</span><span class="op">)</span>, y <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">28</span>, <span class="fl">0</span><span class="op">)</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>        thermaltime2 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>x <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">2</span>, <span class="fl">30</span>, <span class="fl">35</span><span class="op">)</span>, y <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">28</span>, <span class="fl">0</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span>    <span class="op">)</span>,</span></span>
+<span class="r-in"><span>    validators <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>thermaltime <span class="op">=</span> <span class="fu"><a href="v_xypair.html">v_xypair</a></span><span class="op">(</span><span class="op">)</span>, thermaltime2 <span class="op">=</span> <span class="fu"><a href="v_xypair.html">v_xypair</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>    options_validator <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">options</span><span class="op">)</span> <span class="op">{</span></span></span>
+<span class="r-in"><span>        <span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span><span class="va">options</span><span class="op">$</span><span class="va">thermaltime</span><span class="op">$</span><span class="va">x</span>, <span class="va">options</span><span class="op">$</span><span class="va">thermaltime2</span><span class="op">$</span><span class="va">x</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span></span>
+<span class="r-in"><span>            <span class="kw"><a href="https://rdrr.io/r/base/stop.html" class="external-link">stop</a></span><span class="op">(</span><span class="st">"thermaltime x values must match"</span><span class="op">)</span></span></span>
+<span class="r-in"><span>        <span class="op">}</span></span></span>
+<span class="r-in"><span>    <span class="op">}</span></span></span>
+<span class="r-in"><span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">paired</span><span class="op">$</span><span class="fu">set</span><span class="op">(</span><span class="st">"thermaltime.x"</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">5</span>, <span class="fl">25</span>, <span class="fl">40</span><span class="op">)</span>, <span class="st">"thermaltime2.x"</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">5</span>, <span class="fl">25</span>, <span class="fl">40</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="va">sources</span> <span class="op">&lt;-</span> <span class="fu">create_options_manager</span><span class="op">(</span></span></span>
 <span class="r-in"><span>    defaults <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>items <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span></span>

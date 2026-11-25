@@ -1,6 +1,6 @@
 Package: optree
 Title: Hierarchical Runtime Configuration Management
-Version: 0.2.0
+Version: 0.2.1
 Authors@R: 
     person("Bangyou", "Zheng", email = "zheng.bangyou@gmail.com", role = c("aut", "cre"))
 Description: Provides tools for managing nested, multi-level configuration systems with

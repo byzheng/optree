@@ -294,6 +294,94 @@ test_that("create_options_manager rejects validators with non-existent paths", {
     )
 })
 
+test_that("whole-options validation checks defaults and requires a function", {
+    validate <- function(options) {
+        if (!identical(options$a, options$b)) stop("options must match")
+    }
+    expect_error(
+        create_options_manager(list(a = 1, b = 2), options_validator = validate),
+        "options must match"
+    )
+    expect_error(
+        create_options_manager(list(a = 1), options_validator = TRUE),
+        "`options_validator` must be a function or NULL",
+        fixed = TRUE
+    )
+    expect_no_error(create_options_manager(list(a = 1), options_validator = NULL))
+})
+
+test_that("whole-options validation checks merged updates atomically", {
+    manager <- create_options_manager(
+        defaults = list(
+            thermaltime = list(x = c(2, 30, 35), y = c(0, 28, 0)),
+            thermaltime2 = list(x = c(2, 30, 35), y = c(0, 28, 0)),
+            frost_threshold = 0
+        ),
+        validators = list(
+            thermaltime = v_xypair(),
+            thermaltime2 = v_xypair(),
+            frost_threshold = v_numeric_scalar()
+        ),
+        options_validator = function(options) {
+            if (!identical(options$thermaltime$x, options$thermaltime2$x)) {
+                stop("thermaltime x values must match")
+            }
+        }
+    )
+
+    before <- manager$get()
+    expect_error(
+        manager$set("thermaltime.x" = c(5, 25, 40), frost_threshold = -2),
+        "thermaltime x values must match"
+    )
+    expect_equal(manager$get(), before)
+    manager$set(
+        "thermaltime.x" = c(5, 25, 40),
+        "thermaltime2.x" = c(5, 25, 40),
+        frost_threshold = -2
+    )
+    expect_equal(manager$get("thermaltime.x"), c(5, 25, 40))
+    expect_equal(manager$get("thermaltime2.x"), c(5, 25, 40))
+    expect_equal(manager$get("frost_threshold"), -2)
+    manager$reset()
+    expect_equal(manager$get(), before)
+})
+
+test_that("whole-options validation runs after individual validators", {
+    calls <- new.env()
+    calls$count <- 0L
+    manager <- create_options_manager(
+        list(a = 1),
+        validators = list(a = v_numeric_scalar()),
+        options_validator = function(options) {
+            calls$count <- calls$count + 1L
+        }
+    )
+    expect_equal(calls$count, 1L)
+    expect_error(manager$set(a = "invalid"), "single numeric")
+    expect_equal(calls$count, 1L)
+    manager$set(a = 2)
+    expect_equal(calls$count, 2L)
+    manager$reset()
+    expect_equal(calls$count, 2L)
+})
+
+test_that("whole-options validation sees merged collections without schema markers", {
+    manager <- create_options_manager(
+        list(items = list("_as_collection" = TRUE, first = list(type = "files")), limit = 1),
+        list("items._default.type" = v_character_scalar()),
+        options_validator = function(options) {
+            if ("_as_collection" %in% names(options$items)) stop("unexpected marker")
+            if (length(options$items) > options$limit) stop("too many items")
+        }
+    )
+    before <- manager$get()
+    expect_error(manager$set("items.second" = list(type = "files")), "too many items")
+    expect_equal(manager$get(), before)
+    manager$set("items.second" = list(type = "files"), limit = 2)
+    expect_equal(manager$get("items.second.type"), "files")
+})
+
 collection_manager <- function(counter = NULL) {
     create_options_manager(
         defaults = list(

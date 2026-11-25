@@ -15,6 +15,10 @@
 #'   e.g., `"thermaltime"` for a top-level group. For a collection, define
 #'   each required record field using `"<collection path>._default.<field>"`.
 #'   Each field validator receives the complete field value.
+#' @param options_validator An optional function taking the complete options
+#'   list and throwing an error if it is invalid. It is called on the defaults
+#'   at creation and on the merged candidate after individual validators during
+#'   each `set()` call. If `NULL`, whole-options validation is skipped.
 #'
 #' @return A list with three functions:
 #' \describe{
@@ -46,6 +50,9 @@
 #' **Transactional updates**: If validation fails during a \code{set()} call, all
 #' changes are rolled back and the options remain in their previous state. This ensures
 #' that the options manager is always in a consistent state.
+#' The whole-options validator can enforce relationships between different option
+#' paths. Ordinary path validators run on updates, not on defaults at creation.
+#' `reset()` restores the defaults without rerunning validators.
 #'
 #' **Collections**: A collection can contain predefined non-list options and
 #' named list records with exactly the fields declared by its `_default`
@@ -100,6 +107,21 @@
 #' # Reset to defaults
 #' canola$reset()
 #'
+#' # Validate a relationship across different options
+#' paired <- create_options_manager(
+#'     defaults = list(
+#'         thermaltime = list(x = c(2, 30, 35), y = c(0, 28, 0)),
+#'         thermaltime2 = list(x = c(2, 30, 35), y = c(0, 28, 0))
+#'     ),
+#'     validators = list(thermaltime = v_xypair(), thermaltime2 = v_xypair()),
+#'     options_validator = function(options) {
+#'         if (!identical(options$thermaltime$x, options$thermaltime2$x)) {
+#'             stop("thermaltime x values must match")
+#'         }
+#'     }
+#' )
+#' paired$set("thermaltime.x" = c(5, 25, 40), "thermaltime2.x" = c(5, 25, 40))
+#'
 #' sources <- create_options_manager(
 #'     defaults = list(items = list(
 #'         "_as_collection" = TRUE,
@@ -118,7 +140,7 @@
 #' sources$reset()
 #'
 #' @export
-create_options_manager <- function(defaults, validators = list()) {
+create_options_manager <- function(defaults, validators = list(), options_validator = NULL) {
     if (!is.list(defaults) || is.null(names(defaults))) {
         stop("`defaults` must be a named list", call. = FALSE)
     }
@@ -129,6 +151,10 @@ create_options_manager <- function(defaults, validators = list()) {
 
     if (!is.list(validators)) {
         stop("`validators` must be a named list of functions", call. = FALSE)
+    }
+
+    if (!is.null(options_validator) && !is.function(options_validator)) {
+        stop("`options_validator` must be a function or NULL", call. = FALSE)
     }
 
     if (length(validators)) {
@@ -165,6 +191,10 @@ create_options_manager <- function(defaults, validators = list()) {
                 validate_collection_record(items[[name]], collections[[collection_key(path)]], c(path, name))
             }
         }
+    }
+
+    if (!is.null(options_validator)) {
+        options_validator(defaults)
     }
 
     state <- new.env(parent = emptyenv())
@@ -300,6 +330,9 @@ create_options_manager <- function(defaults, validators = list()) {
                 }
             }
             run_validators(candidate, validators)
+            if (!is.null(options_validator)) {
+                options_validator(candidate)
+            }
             state$options <- candidate
             invisible(state$options)
         },

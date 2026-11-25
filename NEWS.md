@@ -1,6 +1,7 @@
-# optree 0.2.0
+# optree 0.2.1
 
 * Add new feature of collections for a set of similar named records.
+* Add a options_validator argument to `create_options_manager` for whole-options validation.
 
 # optree 0.1.3
 

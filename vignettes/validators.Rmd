@@ -281,6 +281,55 @@ my_config$set(step_size = 10)  # ✓ OK
 my_config$set(step_size = 7)   # ✗ Error: must be a multiple of 5
 ```
 
+## Whole-options validation
+
+Path-specific validators receive only the value at their path. To enforce a
+relationship across paths, pass a function as `options_validator`. It receives
+the complete options list and should call `stop()` if the options are invalid:
+
+```{r}
+library(optree)
+
+paired <- create_options_manager(
+  defaults = list(
+    thermaltime = list(x = c(2, 30, 35), y = c(0, 28, 0)),
+    thermaltime2 = list(x = c(2, 30, 35), y = c(0, 28, 0))
+  ),
+  validators = list(
+    thermaltime = v_xypair(),
+    thermaltime2 = v_xypair()
+  ),
+  options_validator = function(options) {
+    if (!identical(options$thermaltime$x, options$thermaltime2$x)) {
+      stop("thermaltime x values must match")
+    }
+  }
+)
+
+# Both values can be updated in one transaction
+paired$set(
+  "thermaltime.x" = c(5, 25, 40),
+  "thermaltime2.x" = c(5, 25, 40)
+)
+```
+
+An update to only one `x` fails, leaving the previous options unchanged:
+
+```{r}
+before <- paired$get()
+tryCatch(
+  paired$set("thermaltime.x" = c(10, 20, 30)),
+  error = function(e) message(conditionMessage(e))
+)
+identical(paired$get(), before)
+```
+
+`options_validator` defaults to `NULL`, which skips whole-options validation.
+Otherwise, it must be a function. It runs on defaults when the manager is
+created, and on the complete merged candidate after individual validators on
+every `set()`. Ordinary path validators run on updates, not on defaults at
+creation. `reset()` restores the defaults without rerunning validators.
+
 ## Combining Multiple Validators
 
 You can create higher-level validators by combining simpler ones and custom logic:

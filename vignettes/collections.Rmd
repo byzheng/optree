@@ -164,6 +164,9 @@ ordinary validators, runs after every `set()` call. Such a validator can inspect
 all records and ordinary options, even though `_default` validators only check
 changed records.
 Ordinary validators are not run when the manager is created.
+For rules involving a collection and options outside it, use
+`options_validator` to inspect the complete options list. See the
+[Validators vignette](validators.Rmd) for its validation lifecycle.
 
 ```{r}
 limited <- create_options_manager(

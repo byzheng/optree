@@ -21,7 +21,7 @@ optree provides a flexible, mutable, hierarchical options manager for R. It allo
 - **Runtime mutable configuration**  
 - **Merge-aware updates** (update only part of a nested group)  
 - **Transactional updates** (rollback on validation failure)  
-- **Group and field validation** for consistency  
+- **Field, group, and whole-options validation** for consistency
 - **Validated collections** of dynamically added, consistently structured records
 - **Reset all options** to defaults with one call  
 - **Minimal dependencies**, lightweight and easy to use  
@@ -160,6 +160,42 @@ canola$reset()
 # Returns all defaults
 canola$get()
 ```
+
+## Whole-options validation
+
+Use `options_validator` for rules involving different option paths. It takes
+the complete options list and calls `stop()` when the values are invalid:
+
+```r
+paired <- create_options_manager(
+  defaults = list(
+    thermaltime = list(x = c(2, 30, 35), y = c(0, 28, 0)),
+    thermaltime2 = list(x = c(2, 30, 35), y = c(0, 28, 0))
+  ),
+  validators = list(
+    thermaltime = v_xypair(),
+    thermaltime2 = v_xypair()
+  ),
+  options_validator = function(options) {
+    if (!identical(options$thermaltime$x, options$thermaltime2$x)) {
+      stop("thermaltime x values must match")
+    }
+  }
+)
+
+# Update both values together so the merged options remain valid
+paired$set(
+  "thermaltime.x" = c(5, 25, 40),
+  "thermaltime2.x" = c(5, 25, 40)
+)
+```
+
+The whole-options validator runs on defaults at creation and on the complete
+merged candidate after individual validators on every `set()`. A failed
+validation leaves all options unchanged. It is optional and skipped when
+`NULL`; `reset()` restores the validated defaults without rerunning it.
+Ordinary path validators run on updates, not on defaults at creation.
+See the [Validators vignette](vignettes/validators.Rmd) for more examples.
 
 ## Collections
 
